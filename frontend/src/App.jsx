@@ -7,6 +7,7 @@ import MyTickets from "./pages/MyTickets";
 import QRDisplay from "./pages/QRDisplay";
 import TransferTicket from "./pages/TransferTicket";
 import GateScanner from "./pages/GateScanner";
+import Navbar from "./components/NavBar";
 
 function ProtectedRoute({ children }) {
   // JWT guard redirects unauthenticated users to login.
@@ -16,51 +17,53 @@ function ProtectedRoute({ children }) {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/events/:id"
-        element={
-          <ProtectedRoute>
-            <EventSeatMap />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/my-tickets"
-        element={
-          <ProtectedRoute>
-            <MyTickets />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/qr/:tokenId"
-        element={
-          <ProtectedRoute>
-            <QRDisplay />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/transfer/:tokenId"
-        element={
-          <ProtectedRoute>
-            <TransferTicket />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/gate-scanner"
-        element={
-          <ProtectedRoute>
-            <GateScanner />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/events/:id"
+          element={
+            <ProtectedRoute>
+              <EventSeatMap />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-tickets"
+          element={
+            <ProtectedRoute>
+              <MyTickets />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/qr/:tokenId"
+          element={
+            <ProtectedRoute>
+              <QRDisplay />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transfer/:tokenId"
+          element={
+            <ProtectedRoute>
+              <TransferTicket />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/gate-scanner"
+          element={
+            <ProtectedRoute>
+              <GateScanner />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </>
   );
 }
-
 export default App;

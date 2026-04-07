@@ -11,7 +11,12 @@ const ticketSchema = new mongoose.Schema(
     faceValue: { type: Number, required: true },
     maxResalePrice: { type: Number, required: true },
     isUsed: { type: Boolean, default: false },
-    transferCount: { type: Number, default: 0 }
+    transferCount: { type: Number, default: 0 },
+    txHash: {
+      type: String,
+      required: true,
+      index: true
+    }
   },
   { timestamps: true }
 );
