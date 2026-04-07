@@ -1,4 +1,4 @@
-# BlockSeat -  Ee sala ticket namdhe!
+# BlockSeat -  Ee sala ticket namdhe guru..
 
 BlockSeat is a blockchain-based NFT ticketing platform designed to reduce black-market reselling.  
 It uses ERC-721 tickets on Polygon Amoy, Node/Express backend APIs, and a React frontend with OTP login, Razorpay payments, capped ticket resale, and dynamic QR gate validation.
