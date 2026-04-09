@@ -71,29 +71,122 @@ function EventSeatMap() {
     }
   };
 
-  if (!eventData) return <p style={{ padding: 20 }}>{message || "Loading event seats..."}</p>;
+  if (!eventData) {
+    return <div className="empty-state">{message || "Loading event seats..."}</div>;
+  }
+
+  const availableCount = eventData.seats.filter((seat) => !seat.isTaken).length;
 
   return (
-    <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h2>{eventData.name} - Seat Map</h2>
-      <p>{new Date(eventData.date).toLocaleString()} | {eventData.venue}</p>
-      <SeatGrid
-        seats={eventData.seats}
-        selectedSeatId={selectedSeat?.seatId}
-        onSeatClick={setSelectedSeat}
-      />
+    <div className="page-grid">
+      <section className="hero-card">
+        <span className="eyebrow">Live booking</span>
+        <h1 className="title">{eventData.name}</h1>
+        <p className="subtitle">
+          {new Date(eventData.date).toLocaleString()} | {eventData.venue}
+        </p>
 
-      {selectedSeat && (
-        <div style={{ marginTop: 16, padding: 12, border: "1px solid #ddd", borderRadius: 8, maxWidth: 420 }}>
-          <p><strong>Stand:</strong> {selectedSeat.stand}</p>
-          <p><strong>Row:</strong> {selectedSeat.row}</p>
-          <p><strong>Seat:</strong> {selectedSeat.seatId}</p>
-          <p><strong>Price:</strong> Rs. {selectedSeat.price}</p>
-          <button onClick={handleBook} style={{ padding: "10px 16px" }}>Book Now</button>
+        <div className="stats-row" style={{ marginTop: 18 }}>
+          <div className="stat">
+            <span className="stat-value">{eventData.seats.length}</span>
+            <span className="stat-label">Total seats</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">{availableCount}</span>
+            <span className="stat-label">Available</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">Polygon</span>
+            <span className="stat-label">Minted ticket chain</span>
+          </div>
         </div>
-      )}
 
-      {message && <p style={{ marginTop: 14 }}>{message}</p>}
+        <div className="section" style={{ marginTop: 22, padding: 0, background: "transparent", boxShadow: "none", border: 0 }}>
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">Choose your seat</h2>
+              <p className="section-copy">Green seats are open, red seats are already claimed. Your selection appears on the right.</p>
+            </div>
+          </div>
+          <div className="grid-shell">
+            <SeatGrid
+              seats={eventData.seats}
+              selectedSeatId={selectedSeat?.seatId}
+              onSeatClick={setSelectedSeat}
+            />
+            <div className="legend">
+              <span className="legend-item"><span className="dot good" /> Available</span>
+              <span className="legend-item"><span className="dot bad" /> Taken</span>
+              <span className="legend-item"><span className="dot warn" /> Selected</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside className="stack">
+        <div className="section">
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">Booking summary</h2>
+              <p className="section-copy">Review the seat, price, and stand before you open Razorpay.</p>
+            </div>
+          </div>
+
+          {selectedSeat ? (
+            <div className="ticket-card">
+              <div className="ticket-topline">
+                <div className="ticket-meta">
+                  <span className="status-badge good">Selected</span>
+                  <span className="ticket-id">{selectedSeat.seatId}</span>
+                </div>
+                <span className="status-badge">{selectedSeat.stand}</span>
+              </div>
+
+              <div className="ticket-details">
+                <div className="detail">
+                  <span className="detail-label">Stand</span>
+                  <span className="detail-value">{selectedSeat.stand}</span>
+                </div>
+                <div className="detail">
+                  <span className="detail-label">Row</span>
+                  <span className="detail-value">{selectedSeat.row}</span>
+                </div>
+                <div className="detail">
+                  <span className="detail-label">Seat</span>
+                  <span className="detail-value">{selectedSeat.seatId}</span>
+                </div>
+                <div className="detail">
+                  <span className="detail-label">Price</span>
+                  <span className="detail-value">Rs. {selectedSeat.price}</span>
+                </div>
+              </div>
+
+              <div className="btn-row" style={{ marginTop: 16 }}>
+                <button type="button" className="btn btn-primary" onClick={handleBook}>
+                  Book Now
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setSelectedSeat(null)}>
+                  Clear
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="empty-state">Select a seat to unlock the booking summary.</div>
+          )}
+        </div>
+
+        <div className="section">
+          <h3 className="section-title" style={{ fontSize: 18 }}>Status</h3>
+          <p className="section-copy">We’ll show payment and minting updates here.</p>
+          {message ? (
+            <div className={`alert ${message.toLowerCase().includes("failed") || message.toLowerCase().includes("unable") ? "error" : ""}`}>
+              {message}
+            </div>
+          ) : (
+            <div className="empty-state">No action yet. Pick a seat and continue.</div>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

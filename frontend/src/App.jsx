@@ -7,7 +7,8 @@ import MyTickets from "./pages/MyTickets";
 import QRDisplay from "./pages/QRDisplay";
 import TransferTicket from "./pages/TransferTicket";
 import GateScanner from "./pages/GateScanner";
-import Navbar from "./components/NavBar";
+import VerifyTicket from "./pages/VerifyTicket";
+import Navbar from "./components/Navbar";
 
 function ProtectedRoute({ children }) {
   // JWT guard redirects unauthenticated users to login.
@@ -16,54 +17,67 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
+  const isAuthed = Boolean(localStorage.getItem("blockseat_token"));
+
   return (
-    <>
+    <div className="app-shell">
       <Navbar />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/events/:id"
-          element={
-            <ProtectedRoute>
-              <EventSeatMap />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/my-tickets"
-          element={
-            <ProtectedRoute>
-              <MyTickets />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/qr/:tokenId"
-          element={
-            <ProtectedRoute>
-              <QRDisplay />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/transfer/:tokenId"
-          element={
-            <ProtectedRoute>
-              <TransferTicket />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/gate-scanner"
-          element={
-            <ProtectedRoute>
-              <GateScanner />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </>
+      <main className="app-main">
+        <Routes>
+          <Route path="/" element={<Navigate to={isAuthed ? "/my-tickets" : "/login"} replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/events/:id"
+            element={
+              <ProtectedRoute>
+                <EventSeatMap />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-tickets"
+            element={
+              <ProtectedRoute>
+                <MyTickets />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/qr/:tokenId"
+            element={
+              <ProtectedRoute>
+                <QRDisplay />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/transfer/:tokenId"
+            element={
+              <ProtectedRoute>
+                <TransferTicket />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/verify/:tokenId"
+            element={
+              <ProtectedRoute>
+                <VerifyTicket />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gate-scanner"
+            element={
+              <ProtectedRoute>
+                <GateScanner />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to={isAuthed ? "/my-tickets" : "/login"} replace />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 export default App;

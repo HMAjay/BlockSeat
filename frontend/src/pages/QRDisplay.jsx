@@ -1,17 +1,17 @@
-// QRDisplay rotates TOTP-based payload every 70 seconds.
+// QRDisplay rotates TOTP-based payload every 30 seconds.
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { authenticator } from "@otplib/preset-browser";
 
-// 70-second rotation
+// 30-second rotation
 authenticator.options = {
-  step: 70,
+  step: 30,
   window: 1
 };
 
-// Valid Base32 secret (DO NOT MODIFY FORMAT)
+// Valid Base32 secret
 const SECRET = "JBSWY3DPEHPK3PXP";
 
 function createTotpCode() {
@@ -27,10 +27,14 @@ function QRDisplay() {
     createTotpCode()
   );
 
-  const [countdown, setCountdown] = useState(70);
+  const [countdown, setCountdown] = useState(30);
 
   const walletAddress =
     localStorage.getItem("blockseat_wallet") || "";
+
+  const maskedWallet = walletAddress
+    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+    : "Not connected";
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -38,12 +42,12 @@ function QRDisplay() {
       const now = Date.now();
 
       const remaining =
-        70 - Math.floor((now / 1000) % 70);
+        30 - Math.floor((now / 1000) % 30);
 
       setCountdown(remaining);
 
-      // refresh TOTP at cycle boundary
-      if (remaining === 70 || remaining === 69) {
+      // Refresh at boundary
+      if (remaining === 30 || remaining === 29) {
         setTotp(createTotpCode());
       }
 
@@ -64,33 +68,39 @@ function QRDisplay() {
   );
 
   return (
-    <div
-      style={{
-        maxWidth: 500,
-        margin: "24px auto",
-        textAlign: "center",
-        fontFamily: "Arial"
-      }}
-    >
-      <h2>Ticket QR</h2>
+    <div className="qr-shell">
+      <div className="hero-card" style={{ width: "100%" }}>
+        <span className="eyebrow">Entry pass</span>
+        <h1 className="title">Ticket QR</h1>
+        <p className="subtitle">
+          Present this QR at the gate. The token updates automatically and stays bound to your wallet and ticket id.
+        </p>
 
-      <p>
-        Event: Demo Event | Seat info is bound on backend
-      </p>
+        <div className="stats-row" style={{ marginTop: 18 }}>
+          <div className="stat">
+            <span className="stat-value">#{safeTokenId}</span>
+            <span className="stat-label">Token ID</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">{maskedWallet}</span>
+            <span className="stat-label">Wallet</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">{countdown}s</span>
+            <span className="stat-label">Refresh left</span>
+          </div>
+        </div>
+      </div>
 
-      <QRCodeSVG
-        value={payload}
-        size={240}
-      />
+      <div className="qr-card">
+        <QRCodeSVG value={payload} size={240} />
+      </div>
 
-      <p style={{ marginTop: 12 }}>
-        <strong>TOTP:</strong> {totp}
-      </p>
-
-      <p>
-        Refresh in: {countdown}s
-      </p>
-
+      <div className="qr-meta">
+        <p className="subtitle" style={{ marginBottom: 0 }}>
+          Scan payload rotates with the timer and includes your current wallet binding.
+        </p>
+      </div>
     </div>
   );
 }

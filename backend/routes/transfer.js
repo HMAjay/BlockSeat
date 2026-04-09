@@ -5,6 +5,7 @@ const Razorpay = require("razorpay");
 const auth = require("../middleware/authMiddleware");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
+const TransferRequest = require("../models/TransferRequest");
 const { contract } = require("../config/blockchain");
 
 const router = express.Router();
@@ -28,48 +29,93 @@ router.get("/users/lookup/:bstId", auth, async (req, res) => {
   }
 });
 
-router.post("/transfer/create-order", auth, async (req, res) => {
+router.post("/transfer/request", auth, async (req, res) => {
   try {
-    const { tokenId, resalePrice } = req.body;
+    const { tokenId, buyerBstId, resalePrice } = req.body;
     const ticket = await Ticket.findOne({ tokenId: Number(tokenId) });
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
     if (ticket.ownerBstId !== req.user.bstId) return res.status(403).json({ message: "Not ticket owner" });
+    if (!buyerBstId) return res.status(400).json({ message: "buyerBstId is required" });
     if (Number(resalePrice) > ticket.maxResalePrice) {
       return res.status(400).json({ message: "Resale price exceeds cap" });
     }
 
-    const order = await razorpay.orders.create({
-      amount: Math.round(Number(resalePrice) * 100),
-      currency: "INR",
-      receipt: `transfer_${tokenId}_${Date.now()}`
+    const buyer = await User.findOne({ bstId: buyerBstId });
+    if (!buyer) return res.status(404).json({ message: "Buyer not found" });
+
+    const request = await TransferRequest.create({
+      tokenId: Number(tokenId),
+      eventId: ticket.eventId,
+      seat: ticket.seat,
+      sellerBstId: ticket.ownerBstId,
+      sellerWalletAddress: ticket.ownerWalletAddress,
+      buyerBstId: buyer.bstId,
+      buyerWalletAddress: buyer.walletAddress,
+      resalePrice: Number(resalePrice),
+      status: "pending"
     });
 
-    return res.json({ order, maxResalePrice: ticket.maxResalePrice, keyId: process.env.RAZORPAY_KEY_ID });
+    return res.json({ message: "Transfer request created", request });
   } catch (error) {
-    return res.status(500).json({ message: "Transfer order failed", error: error.message });
+    return res.status(500).json({ message: "Transfer request failed", error: error.message });
   }
 });
 
-router.post("/transfer/execute", auth, async (req, res) => {
+router.get("/transfer/requests/incoming", auth, async (req, res) => {
   try {
-    const {
-      tokenId,
-      recipientBstId,
-      resalePrice,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
-    } = req.body;
+    const requests = await TransferRequest.find({
+      buyerBstId: req.user.bstId,
+      status: "pending"
+    }).sort({ createdAt: -1 });
+    return res.json(requests);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load transfer requests", error: error.message });
+  }
+});
 
-    const ticket = await Ticket.findOne({ tokenId: Number(tokenId) });
-    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
-    if (ticket.ownerBstId !== req.user.bstId) return res.status(403).json({ message: "Not ticket owner" });
-    if (Number(resalePrice) > ticket.maxResalePrice) {
-      return res.status(400).json({ message: "Resale price exceeds cap" });
+router.get("/transfer/requests/sent", auth, async (req, res) => {
+  try {
+    const requests = await TransferRequest.find({
+      sellerBstId: req.user.bstId
+    }).sort({ createdAt: -1 });
+    return res.json(requests);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load sent requests", error: error.message });
+  }
+});
+
+router.post("/transfer/request/:id/create-order", auth, async (req, res) => {
+  try {
+    const request = await TransferRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: "Transfer request not found" });
+    if (request.buyerBstId !== req.user.bstId) return res.status(403).json({ message: "Not request recipient" });
+    if (request.status !== "pending") return res.status(400).json({ message: "Transfer request is not pending" });
+
+    const order = await razorpay.orders.create({
+      amount: Math.round(Number(request.resalePrice) * 100),
+      currency: "INR",
+      receipt: `transfer_request_${request.tokenId}_${Date.now()}`
+    });
+
+    request.paymentOrderId = order.id;
+    await request.save();
+
+    return res.json({ order, keyId: process.env.RAZORPAY_KEY_ID, request });
+  } catch (error) {
+    return res.status(500).json({ message: "Request order failed", error: error.message });
+  }
+});
+
+router.post("/transfer/request/:id/complete", auth, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const request = await TransferRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: "Transfer request not found" });
+    if (request.buyerBstId !== req.user.bstId) return res.status(403).json({ message: "Not request recipient" });
+    if (request.status !== "pending") return res.status(400).json({ message: "Transfer request is not ready for completion" });
+    if (request.paymentOrderId && request.paymentOrderId !== razorpay_order_id) {
+      return res.status(400).json({ message: "Payment order does not match this request" });
     }
-
-    const recipient = await User.findOne({ bstId: recipientBstId });
-    if (!recipient) return res.status(404).json({ message: "Recipient not found" });
 
     // Verify Razorpay signature before blockchain transfer.
     const generated = crypto
@@ -80,7 +126,16 @@ router.post("/transfer/execute", auth, async (req, res) => {
       return res.status(400).json({ message: "Invalid payment signature" });
     }
 
-    const tx = await contract.resell(Number(tokenId), recipient.walletAddress, Number(resalePrice));
+    const recipient = await User.findOne({ bstId: request.buyerBstId });
+    if (!recipient) return res.status(404).json({ message: "Recipient not found" });
+
+    const ticket = await Ticket.findOne({ tokenId: Number(request.tokenId) });
+    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+    if (ticket.ownerBstId !== request.sellerBstId) {
+      return res.status(400).json({ message: "Ticket owner no longer matches request" });
+    }
+
+    const tx = await contract.resell(Number(request.tokenId), recipient.walletAddress, Number(request.resalePrice));
     await tx.wait();
 
     ticket.ownerBstId = recipient.bstId;
@@ -88,9 +143,37 @@ router.post("/transfer/execute", auth, async (req, res) => {
     ticket.transferCount += 1;
     await ticket.save();
 
-    return res.json({ message: "Transfer complete", txHash: tx.hash, recipientBstId: recipient.bstId });
+    request.status = "completed";
+    request.paymentId = razorpay_payment_id;
+    request.paymentSignature = razorpay_signature;
+    request.txHash = tx.hash;
+    await request.save();
+
+    return res.json({
+      message: "Transfer complete",
+      txHash: tx.hash,
+      recipientBstId: recipient.bstId,
+      request
+    });
   } catch (error) {
     return res.status(500).json({ message: "Transfer execution failed", error: error.message });
+  }
+});
+
+router.post("/transfer/request/:id/decline", auth, async (req, res) => {
+  try {
+    const request = await TransferRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: "Transfer request not found" });
+    if (request.buyerBstId !== req.user.bstId) return res.status(403).json({ message: "Not request recipient" });
+    if (request.status !== "pending" && request.status !== "accepted") {
+      return res.status(400).json({ message: "Transfer request cannot be declined" });
+    }
+
+    request.status = "declined";
+    await request.save();
+    return res.json({ message: "Transfer request declined", request });
+  } catch (error) {
+    return res.status(500).json({ message: "Decline failed", error: error.message });
   }
 });
 

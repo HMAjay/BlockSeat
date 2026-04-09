@@ -3,16 +3,6 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
 
-const loadRazorpay = () =>
-  new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-
 function TransferTicket() {
   const { tokenId } = useParams();
   const [ticket, setTicket] = useState(null);
@@ -20,6 +10,7 @@ function TransferTicket() {
   const [recipientName, setRecipientName] = useState("");
   const [resalePrice, setResalePrice] = useState("");
   const [message, setMessage] = useState("");
+  const [request, setRequest] = useState(null);
 
   useEffect(() => {
     const loadTicket = async () => {
@@ -44,62 +35,92 @@ function TransferTicket() {
       if (!ticket) return setMessage("Ticket not found");
       if (Number(resalePrice) > ticket.maxResalePrice) return setMessage("Price exceeds cap");
 
-      const orderResp = await api.post("/transfer/create-order", { tokenId: Number(tokenId), resalePrice: Number(resalePrice) });
-      const order = orderResp.data.order;
+      const { data } = await api.post("/transfer/request", {
+        tokenId: Number(tokenId),
+        buyerBstId: recipientBstId,
+        resalePrice: Number(resalePrice)
+      });
 
-      const loaded = await loadRazorpay();
-      if (!loaded) return setMessage("Unable to load Razorpay SDK");
-
-      const options = {
-        key: orderResp.data.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: "BlockSeat",
-        description: `Transfer Token #${tokenId}`,
-        order_id: order.id,
-        handler: async (response) => {
-          await api.post("/transfer/execute", {
-            tokenId: Number(tokenId),
-            recipientBstId,
-            resalePrice: Number(resalePrice),
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature
-          });
-          setMessage(`Ticket transferred to ${recipientName}`);
-        }
-      };
-      const rz = new window.Razorpay(options);
-      rz.open();
+      setRequest(data.request);
+      setMessage(`Transfer request sent to ${recipientName || recipientBstId}.`);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Transfer failed");
+      setMessage(error.response?.data?.message || "Transfer request failed");
     }
   };
 
+  const isError =
+    message.toLowerCase().includes("fail") ||
+    message.toLowerCase().includes("exceeds") ||
+    message.toLowerCase().includes("not found");
+
   return (
-    <div style={{ maxWidth: 560, margin: "24px auto", fontFamily: "Arial" }}>
-      <h2>Transfer Ticket #{tokenId}</h2>
-      <p>Max resale cap: Rs. {ticket?.maxResalePrice ?? "-"}</p>
+    <div className="page-grid">
+      <section className="hero-card">
+        <span className="eyebrow">Resale transfer</span>
+        <h1 className="title">Transfer ticket #{tokenId}</h1>
+        <p className="subtitle">
+          Resale stays capped, lookup confirms the buyer, and the transfer finalizes only after payment succeeds.
+        </p>
 
-      <input
-        value={recipientBstId}
-        onChange={(e) => setRecipientBstId(e.target.value)}
-        placeholder="Recipient BST ID"
-        style={{ width: "100%", padding: 10, marginBottom: 8 }}
-      />
-      <button onClick={lookupUser}>Lookup User</button>
-      {recipientName && <p>Recipient: {recipientName}</p>}
+        <div className="stats-row" style={{ marginTop: 18 }}>
+          <div className="stat">
+            <span className="stat-value">Rs. {ticket?.maxResalePrice ?? "-"}</span>
+            <span className="stat-label">Max resale cap</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">{ticket?.seat ?? "-"}</span>
+            <span className="stat-label">Seat</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">{ticket?.eventId ?? "-"}</span>
+            <span className="stat-label">Event</span>
+          </div>
+        </div>
+      </section>
 
-      <input
-        type="number"
-        value={resalePrice}
-        onChange={(e) => setResalePrice(e.target.value)}
-        placeholder="Resale price in INR"
-        style={{ width: "100%", padding: 10, margin: "12px 0" }}
-      />
-      <button onClick={payAndTransfer}>Pay & Transfer</button>
+      <aside className="section">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">Transfer details</h2>
+            <p className="section-copy">Fill the recipient BST ID, verify the user, and confirm the price.</p>
+          </div>
+        </div>
 
-      {message && <p style={{ marginTop: 12 }}>{message}</p>}
+        <div className="form-grid">
+          <input
+            className="input"
+            value={recipientBstId}
+            onChange={(e) => setRecipientBstId(e.target.value)}
+            placeholder="Interested buyer BST ID"
+          />
+          <button type="button" className="btn btn-secondary" onClick={lookupUser}>
+            Lookup Buyer
+          </button>
+          {recipientName && (
+            <div className="alert success">
+              Recipient: <strong>{recipientName}</strong>
+            </div>
+          )}
+
+          <input
+            className="input"
+            type="number"
+            value={resalePrice}
+            onChange={(e) => setResalePrice(e.target.value)}
+            placeholder="Resale price in INR"
+          />
+          <button type="button" className="btn btn-primary" onClick={payAndTransfer}>
+            Send Transfer Request
+          </button>
+        </div>
+
+        {request && (
+          <div className="alert success" style={{ marginTop: 16 }}>
+            Request created for <strong>{request.buyerBstId}</strong>. The buyer can now approve and pay from My Tickets.
+          </div>
+        )}
+        {message && <div className={`alert ${isError ? "error" : ""}`}>{message}</div>}
+      </aside>
     </div>
   );
 }

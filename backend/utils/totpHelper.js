@@ -2,7 +2,7 @@
 const { authenticator } = require("otplib");
 
 authenticator.options = {
-  step: 70,
+  step: 30,
   window: 1
 };
 
