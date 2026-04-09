@@ -1,42 +1,43 @@
-# BlockSeat -  Ee sala ticket namdhe guru..
+# BlockSeat - Ee sala ticket namdhe guru..
 
-BlockSeat is a blockchain-based NFT ticketing platform designed to reduce black-market reselling.  
-It uses ERC-721 tickets on Polygon Amoy, Node/Express backend APIs, and a React frontend with OTP login, Razorpay payments, capped ticket resale, and dynamic QR gate validation.
+BlockSeat is a blockchain-based NFT ticketing platform built to reduce black-market ticket reselling.  
+It uses ERC-721 tickets on Polygon Amoy, a Node/Express backend, and a React frontend with OTP login, Razorpay payments, capped resale, transfer requests, and QR-based gate validation.
 
 ## Monorepo Structure
 
 - `blockchain/` - Solidity contract and Hardhat config
 - `backend/` - Express APIs, MongoDB models, blockchain + payment integrations
-- `frontend/` - React app with booking, transfer, QR display, and gate scanner demo
+- `frontend/` - React app with booking, QR display, transfer requests, ticket verification, and gate admin utility
 
-## 1) Prerequisites
+## Prerequisites
 
 - Node.js 18+
-- MongoDB Atlas database
-- Polygon Amoy RPC provider (Alchemy/Infura/etc.)
+- MongoDB Atlas or local MongoDB
+- Polygon Amoy RPC provider
 - Razorpay test account keys
 
-## 2) Deploy Contract on Remix (Polygon Amoy)
+## Smart Contract
 
-1. Open [Remix IDE](https://remix.ethereum.org/).
-2. Create `BlockSeatTicket.sol` using code from `blockchain/contracts/BlockSeatTicket.sol`.
-3. In **Solidity Compiler**, compile with version `0.8.20` (or compatible `0.8.x`).
-4. In **Deploy & Run Transactions**:
-   - Environment: **Injected Provider - MetaMask**
-   - Connect MetaMask to **Polygon Amoy Testnet**
-5. Deploy `BlockSeatTicket`.
-6. Copy deployed contract address and put it into backend `.env` as `CONTRACT_ADDRESS`.
-7. Use the same deploying private key as `ADMIN_PRIVATE_KEY` in backend `.env`.
+The main contract is:
 
-## 3) Backend Setup
+- [`blockchain/contracts/BlockSeatTicket.sol`](blockchain/contracts/BlockSeatTicket.sol)
 
-1. Go to backend folder:
-   - `cd blockseat/backend`
+It supports:
+
+- ERC-721 minting
+- Capped resale
+- Ticket usage marking at the gate
+- Transfer count tracking
+
+## Backend Setup
+
+1. Go to backend:
+   - `cd backend`
 2. Install dependencies:
    - `npm install`
-3. Create `.env` from example:
-   - `copy .env.example .env` (Windows)
-4. Fill all environment variables:
+3. Copy environment file:
+   - `copy .env.example .env`
+4. Fill in:
    - `MONGO_URI`
    - `JWT_SECRET`
    - `MASTER_ENCRYPTION_KEY`
@@ -51,49 +52,118 @@ It uses ERC-721 tickets on Polygon Amoy, Node/Express backend APIs, and a React 
 
 Backend runs at `http://localhost:5000`.
 
-## 4) Frontend Setup
+## Frontend Setup
 
-1. Go to frontend folder:
-   - `cd blockseat/frontend`
+1. Go to frontend:
+   - `cd frontend`
 2. Install dependencies:
    - `npm install`
 3. Start frontend:
    - `npm run dev`
 
-Frontend runs at `http://localhost:3000` (or Vite default if changed).
+Frontend runs at `http://localhost:3000` or the Vite default port.
 
-## 5) Suggested Test Data (MongoDB)
+## Required MongoDB Seed
 
-Insert one event document in `events` collection with `eventId: "EVT-001"` and seats like `A1...A6`, `B1...B6`.  
-The frontend route `/events/EVT-001` expects this event to exist.
+Create one event document in `events` with this data:
 
-## 6) End-to-End Test Flow
+```json
+{
+  "eventId": "Match-001",
+  "name": "RCB vs CSK",
+  "date": "2026-04-09T00:00:00.000Z",
+  "venue": "M. Chinnaswamy Stadium, Bangalore",
+  "totalSeats": 24,
+  "seats": [
+    { "seatId": "A1", "row": "A", "stand": "North", "price": 1500, "isTaken": false },
+    { "seatId": "A2", "row": "A", "stand": "North", "price": 1500, "isTaken": false },
+    { "seatId": "A3", "row": "A", "stand": "North", "price": 1500, "isTaken": false },
+    { "seatId": "A4", "row": "A", "stand": "North", "price": 1500, "isTaken": false },
+    { "seatId": "A5", "row": "A", "stand": "North", "price": 1500, "isTaken": false },
+    { "seatId": "A6", "row": "A", "stand": "North", "price": 1500, "isTaken": false },
+    { "seatId": "B1", "row": "B", "stand": "East", "price": 4000, "isTaken": false },
+    { "seatId": "B2", "row": "B", "stand": "East", "price": 4000, "isTaken": false },
+    { "seatId": "B3", "row": "B", "stand": "East", "price": 4000, "isTaken": false },
+    { "seatId": "B4", "row": "B", "stand": "East", "price": 4000, "isTaken": false },
+    { "seatId": "B5", "row": "B", "stand": "East", "price": 4000, "isTaken": false },
+    { "seatId": "B6", "row": "B", "stand": "East", "price": 4000, "isTaken": false },
+    { "seatId": "C1", "row": "C", "stand": "West", "price": 4000, "isTaken": false },
+    { "seatId": "C2", "row": "C", "stand": "West", "price": 4000, "isTaken": false },
+    { "seatId": "C3", "row": "C", "stand": "West", "price": 4000, "isTaken": false },
+    { "seatId": "C4", "row": "C", "stand": "West", "price": 4000, "isTaken": false },
+    { "seatId": "C5", "row": "C", "stand": "West", "price": 4000, "isTaken": false },
+    { "seatId": "C6", "row": "C", "stand": "West", "price": 4000, "isTaken": false },
+    { "seatId": "D1", "row": "D", "stand": "South", "price": 7000, "isTaken": false },
+    { "seatId": "D2", "row": "D", "stand": "South", "price": 7000, "isTaken": false },
+    { "seatId": "D3", "row": "D", "stand": "South", "price": 7000, "isTaken": false },
+    { "seatId": "D4", "row": "D", "stand": "South", "price": 7000, "isTaken": false },
+    { "seatId": "D5", "row": "D", "stand": "South", "price": 7000, "isTaken": false },
+    { "seatId": "D6", "row": "D", "stand": "South", "price": 7000, "isTaken": false }
+  ]
+}
+```
 
-1. **Login**
-   - Open frontend, go to `/login`
-   - Enter phone and click **Send OTP**
-   - Read OTP from backend console (mock SMS log)
-   - Verify OTP and observe generated BST ID card
-2. **Book Ticket**
-   - You are redirected to seat map
-   - Select available seat (green) and click **Book Now**
-   - Complete Razorpay test checkout
-   - Ticket mints on-chain and appears in **My Tickets**
-3. **View QR**
-   - Open **My Tickets** -> **View QR**
-   - QR payload rotates every 70 seconds with dynamic TOTP
-4. **Transfer Ticket**
-   - Open **Transfer**
-   - Enter recipient BST ID and lookup user
-   - Enter resale price within cap and complete Razorpay checkout
-   - Ticket ownership updates on-chain and in MongoDB
-5. **Gate Scan**
-   - Open `/gate-scanner`
-   - Enter token ID and current TOTP from QR page
-   - Receive **VALID - WELCOME IN** for first scan, invalid on reuse
+## End-to-End Flow
+
+### 1) Login
+
+- Open `/login`
+- Enter phone number
+- Click **Send OTP**
+- Read the OTP from the backend console
+- Verify OTP
+- You are redirected to `/events/Match-001`
+
+### 2) Book Ticket
+
+- Select an available seat
+- Click **Book Now**
+- Complete Razorpay checkout
+- The ticket is minted on-chain and stored in MongoDB
+
+### 3) View QR
+
+- Open **My Tickets**
+- Click **View QR**
+- The QR payload is tied to the ticket record and rotates automatically
+- After transfer, the QR secret rotates so the old owner’s QR no longer works
+
+### 4) Transfer Ticket
+
+- Open **Transfer**
+- Enter the interested buyer’s BST ID
+- Send a transfer request
+- The buyer sees the request in **My Tickets**
+- The buyer can **Accept & Buy** or **Decline**
+- A second transfer request for the same ticket is blocked until the current one is resolved
+
+### 5) Verify Ticket
+
+- In **My Tickets**, click **Verify Ticket**
+- The app opens a page prefilled with the ticket’s `txHash` from MongoDB
+- You can open the Polygon Amoy explorer with that hash
+
+### 6) Gate Scan
+
+- Open `/gate-scanner` manually
+- This is a gate/admin utility page, not shown in the customer nav
+- Paste a QR image URL or upload a QR image
+- Decode the QR, then verify the ticket
+- A valid scan burns the ticket on entry and marks it used
 
 ## Notes
 
-- Contract `mint()` and `burnOnEntry()` are admin-only and backend executes them with `ADMIN_PRIVATE_KEY`.
-- `resell()` enforces max resale cap and resale-window boolean gate.
+- `mint()` and `burnOnEntry()` are admin-only and run through the backend signer.
+- `resell()` enforces the resale cap and transfer window.
+- Each ticket now has a per-ticket QR secret stored in MongoDB.
+- On successful transfer, the backend updates:
+  - ticket ownership
+  - transfer count
+  - ticket `txHash`
+  - QR secret
 - Custodial user keys are AES-encrypted before storage in MongoDB.
+
+## Local Environment Files
+
+- [`backend/.env.example`](backend/.env.example)
+- [`blockchain/.env.example`](blockchain/.env.example)
