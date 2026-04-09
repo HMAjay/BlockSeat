@@ -1,5 +1,6 @@
 // Main Express server bootstraps DB, middleware, and all API route groups.
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");

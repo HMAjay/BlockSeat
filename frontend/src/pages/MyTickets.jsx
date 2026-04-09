@@ -121,18 +121,22 @@ function MyTickets() {
         description: `Buy ticket #${request.tokenId}`,
         order_id: order.id,
         handler: async (response) => {
-          await api.post(`/transfer/request/${request._id}/complete`, {
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature
-          });
-          setMessage(`Ticket bought from ${request.sellerBstId}`);
-          const [ticketsResp, requestsResp] = await Promise.all([
-            api.get("/tickets"),
-            api.get("/transfer/requests/incoming")
-          ]);
-          setTickets(ticketsResp.data);
-          setRequests(requestsResp.data);
+          try {
+            await api.post(`/transfer/request/${request._id}/complete`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            setMessage(`Ticket bought from ${request.sellerBstId}`);
+            const [ticketsResp, requestsResp] = await Promise.all([
+              api.get("/tickets"),
+              api.get("/transfer/requests/incoming")
+            ]);
+            setTickets(ticketsResp.data);
+            setRequests(requestsResp.data);
+          } catch (err) {
+            setMessage(err.response?.data?.message || "Transfer completion failed after payment");
+          }
         }
       };
 

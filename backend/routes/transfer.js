@@ -6,7 +6,9 @@ const auth = require("../middleware/authMiddleware");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const TransferRequest = require("../models/TransferRequest");
-const { contract } = require("../config/blockchain");
+const { contract, provider, CONTRACT_ABI, adminSigner } = require("../config/blockchain");
+const { ethers } = require("ethers");
+const { decryptKey } = require("../utils/walletManager");
 
 const router = express.Router();
 
@@ -94,7 +96,7 @@ router.post("/transfer/request/:id/create-order", auth, async (req, res) => {
     const order = await razorpay.orders.create({
       amount: Math.round(Number(request.resalePrice) * 100),
       currency: "INR",
-      receipt: `transfer_request_${request.tokenId}_${Date.now()}`
+      receipt: `tr_${request.tokenId}_${Date.now().toString().slice(-7)}`
     });
 
     request.paymentOrderId = order.id;
@@ -135,7 +137,24 @@ router.post("/transfer/request/:id/complete", auth, async (req, res) => {
       return res.status(400).json({ message: "Ticket owner no longer matches request" });
     }
 
-    const tx = await contract.resell(Number(request.tokenId), recipient.walletAddress, Number(request.resalePrice));
+    // Use the seller's custodial wallet to sign the resell tx (contract requires msg.sender == owner).
+    const seller = await User.findOne({ bstId: request.sellerBstId });
+    if (!seller) return res.status(404).json({ message: "Seller not found" });
+    const sellerPrivateKey = decryptKey(seller.encryptedPrivateKey);
+    const sellerSigner = new ethers.Wallet(sellerPrivateKey, provider);
+    const sellerContract = new ethers.Contract(process.env.CONTRACT_ADDRESS, CONTRACT_ABI, sellerSigner);
+
+    // Fund seller wallet with gas if balance is too low for the tx.
+    const sellerBalance = await provider.getBalance(seller.walletAddress);
+    if (sellerBalance < ethers.parseEther("0.01")) {
+      const fundTx = await adminSigner.sendTransaction({
+        to: seller.walletAddress,
+        value: ethers.parseEther("0.05")
+      });
+      await fundTx.wait();
+    }
+
+    const tx = await sellerContract.resell(Number(request.tokenId), recipient.walletAddress, Number(request.resalePrice));
     await tx.wait();
 
     ticket.ownerBstId = recipient.bstId;
