@@ -11,14 +11,26 @@ function TransferTicket() {
   const [resalePrice, setResalePrice] = useState("");
   const [message, setMessage] = useState("");
   const [request, setRequest] = useState(null);
+  const [pendingRequest, setPendingRequest] = useState(null);
 
   useEffect(() => {
     const loadTicket = async () => {
-      const { data } = await api.get("/tickets");
-      const current = data.find((t) => String(t.tokenId) === String(tokenId));
-      setTicket(current || null);
+      try {
+        const [ticketsResp, sentResp] = await Promise.all([
+          api.get("/tickets"),
+          api.get("/transfer/requests/sent")
+        ]);
+        const current = ticketsResp.data.find((t) => String(t.tokenId) === String(tokenId));
+        setTicket(current || null);
+        const existing = sentResp.data.find(
+          (item) => String(item.tokenId) === String(tokenId) && item.status === "pending"
+        );
+        setPendingRequest(existing || null);
+      } catch (error) {
+        setMessage(error.response?.data?.message || "Failed to load ticket");
+      }
     };
-    loadTicket().catch(() => setMessage("Failed to load ticket"));
+    loadTicket();
   }, [tokenId]);
 
   const lookupUser = async () => {
@@ -32,6 +44,9 @@ function TransferTicket() {
 
   const payAndTransfer = async () => {
     try {
+      if (pendingRequest) {
+        return setMessage("This ticket already has a pending transfer request. Wait for the buyer to respond.");
+      }
       if (!ticket) return setMessage("Ticket not found");
       if (Number(resalePrice) > ticket.maxResalePrice) return setMessage("Price exceeds cap");
 
@@ -92,6 +107,7 @@ function TransferTicket() {
             value={recipientBstId}
             onChange={(e) => setRecipientBstId(e.target.value)}
             placeholder="Interested buyer BST ID"
+            disabled={Boolean(pendingRequest)}
           />
           <button type="button" className="btn btn-secondary" onClick={lookupUser}>
             Lookup Buyer
@@ -108,12 +124,18 @@ function TransferTicket() {
             value={resalePrice}
             onChange={(e) => setResalePrice(e.target.value)}
             placeholder="Resale price in INR"
+            disabled={Boolean(pendingRequest)}
           />
-          <button type="button" className="btn btn-primary" onClick={payAndTransfer}>
+          <button type="button" className="btn btn-primary" onClick={payAndTransfer} disabled={Boolean(pendingRequest)}>
             Send Transfer Request
           </button>
         </div>
 
+        {pendingRequest && (
+          <div className="alert">
+            Transfer pending for this ticket. Wait for the buyer to accept or decline before sending another request.
+          </div>
+        )}
         {request && (
           <div className="alert success" style={{ marginTop: 16 }}>
             Request created for <strong>{request.buyerBstId}</strong>. The buyer can now approve and pay from My Tickets.

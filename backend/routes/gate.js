@@ -2,7 +2,7 @@
 const express = require("express");
 const { contract } = require("../config/blockchain");
 const Ticket = require("../models/Ticket");
-const { verifyTOTP } = require("../utils/totpHelper");
+const { deriveLegacySecret, verifyTOTP } = require("../utils/totpHelper");
 
 const router = express.Router();
 
@@ -11,8 +11,12 @@ router.post("/verify", async (req, res) => {
     const { tokenId, totpCode } = req.body;
     if (!tokenId || !totpCode) return res.status(400).json({ message: "tokenId and totpCode are required" });
 
+    const ticket = await Ticket.findOne({ tokenId: Number(tokenId) });
+    if (!ticket) return res.status(400).json({ status: "INVALID", reason: "Ticket not found in DB" });
+
     // (1) Validate TOTP freshness and authenticity.
-    if (!verifyTOTP(tokenId, totpCode)) {
+    const qrSecret = ticket.qrSecret || deriveLegacySecret(tokenId);
+    if (!(await verifyTOTP(qrSecret, tokenId, totpCode))) {
       return res.status(400).json({ status: "INVALID", reason: "Invalid TOTP" });
     }
 
@@ -23,9 +27,6 @@ router.post("/verify", async (req, res) => {
     } catch (error) {
       return res.status(400).json({ status: "INVALID", reason: "Token does not exist on-chain" });
     }
-
-    const ticket = await Ticket.findOne({ tokenId: Number(tokenId) });
-    if (!ticket) return res.status(400).json({ status: "INVALID", reason: "Ticket not found in DB" });
 
     // (3) Verify on-chain owner matches backend owner wallet record.
     if (ticket.ownerWalletAddress.toLowerCase() !== onChainOwner.toLowerCase()) {

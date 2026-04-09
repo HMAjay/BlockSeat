@@ -7,6 +7,7 @@ const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const TransferRequest = require("../models/TransferRequest");
 const { contract } = require("../config/blockchain");
+const { createQrSecret } = require("../utils/totpHelper");
 
 const router = express.Router();
 
@@ -38,6 +39,17 @@ router.post("/transfer/request", auth, async (req, res) => {
     if (!buyerBstId) return res.status(400).json({ message: "buyerBstId is required" });
     if (Number(resalePrice) > ticket.maxResalePrice) {
       return res.status(400).json({ message: "Resale price exceeds cap" });
+    }
+
+    const existingRequest = await TransferRequest.findOne({
+      tokenId: Number(tokenId),
+      sellerBstId: req.user.bstId,
+      status: { $in: ["pending", "accepted"] }
+    });
+    if (existingRequest) {
+      return res.status(400).json({
+        message: "This ticket already has a pending transfer request. Wait for accept or decline before sending another."
+      });
     }
 
     const buyer = await User.findOne({ bstId: buyerBstId });
@@ -141,6 +153,8 @@ router.post("/transfer/request/:id/complete", auth, async (req, res) => {
     ticket.ownerBstId = recipient.bstId;
     ticket.ownerWalletAddress = recipient.walletAddress;
     ticket.transferCount += 1;
+    ticket.qrSecret = createQrSecret();
+    ticket.txHash = tx.hash;
     await ticket.save();
 
     request.status = "completed";

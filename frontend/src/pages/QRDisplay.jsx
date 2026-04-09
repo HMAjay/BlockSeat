@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { authenticator } from "@otplib/preset-browser";
+import api from "../services/api";
 
 // 30-second rotation
 authenticator.options = {
@@ -11,23 +12,31 @@ authenticator.options = {
   window: 1
 };
 
-// Valid Base32 secret
-const SECRET = "JBSWY3DPEHPK3PXP";
+const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-function createTotpCode() {
-  return authenticator.generate(SECRET);
-}
+const deriveLegacySecret = (tokenId) => {
+  const seed = `BlockSeat-${tokenId}`;
+  let secret = "";
+
+  for (let i = 0; i < seed.length; i += 1) {
+    secret += BASE32_ALPHABET[seed.charCodeAt(i) % BASE32_ALPHABET.length];
+  }
+
+  while (secret.length < 16) {
+    secret += BASE32_ALPHABET[(seed.length * 7) % BASE32_ALPHABET.length];
+  }
+
+  return secret.slice(0, 32);
+};
 
 function QRDisplay() {
   const { tokenId } = useParams();
 
   const safeTokenId = tokenId || "0";
-
-  const [totp, setTotp] = useState(() =>
-    createTotpCode()
-  );
-
+  const [ticket, setTicket] = useState(null);
+  const [totp, setTotp] = useState("");
   const [countdown, setCountdown] = useState(30);
+  const [message, setMessage] = useState("");
 
   const walletAddress =
     localStorage.getItem("blockseat_wallet") || "";
@@ -37,25 +46,41 @@ function QRDisplay() {
     : "Not connected";
 
   useEffect(() => {
+    const loadTicket = async () => {
+      try {
+        const { data } = await api.get("/tickets");
+        const current = data.find((item) => String(item.tokenId) === String(safeTokenId));
+        if (!current) {
+          setMessage("Ticket not found for this wallet.");
+          return;
+        }
+        setTicket(current);
+        const secret = current.qrSecret || deriveLegacySecret(safeTokenId);
+        setTotp(authenticator.generate(secret));
+      } catch (error) {
+        setMessage(error.response?.data?.message || "Failed to load ticket");
+      }
+    };
+
+    loadTicket();
+  }, [safeTokenId]);
+
+  useEffect(() => {
+    if (!ticket) return undefined;
+    const secret = ticket.qrSecret || deriveLegacySecret(safeTokenId);
+
     const timer = setInterval(() => {
-
       const now = Date.now();
-
-      const remaining =
-        30 - Math.floor((now / 1000) % 30);
-
+      const remaining = 30 - Math.floor((now / 1000) % 30);
       setCountdown(remaining);
 
-      // Refresh at boundary
       if (remaining === 30 || remaining === 29) {
-        setTotp(createTotpCode());
+        setTotp(authenticator.generate(secret));
       }
-
     }, 1000);
 
     return () => clearInterval(timer);
-
-  }, []);
+  }, [ticket]);
 
   const payload = useMemo(
     () =>
@@ -100,6 +125,7 @@ function QRDisplay() {
         <p className="subtitle" style={{ marginBottom: 0 }}>
           Scan payload rotates with the timer and includes your current wallet binding.
         </p>
+        {message && <div className="alert error">{message}</div>}
       </div>
     </div>
   );

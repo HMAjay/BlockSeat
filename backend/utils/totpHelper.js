@@ -1,4 +1,4 @@
-// TOTP helper generates dynamic gate codes with 70-second refresh windows.
+// TOTP helper generates dynamic gate codes with per-ticket secrets.
 const { authenticator } = require("otplib");
 
 authenticator.options = {
@@ -6,10 +6,30 @@ authenticator.options = {
   window: 1
 };
 
-const makeSecret = (tokenId) => `${process.env.TOTP_ISSUER || "BlockSeat"}-${tokenId}`;
+const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-const generateTOTP = (tokenId) => authenticator.generate(makeSecret(tokenId));
+const deriveLegacySecret = (tokenId) => {
+  const seed = `${process.env.TOTP_ISSUER || "BlockSeat"}-${tokenId}`;
+  let secret = "";
 
-const verifyTOTP = (tokenId, totpCode) => authenticator.verify({ token: String(totpCode), secret: makeSecret(tokenId) });
+  for (let i = 0; i < seed.length; i += 1) {
+    secret += BASE32_ALPHABET[seed.charCodeAt(i) % BASE32_ALPHABET.length];
+  }
 
-module.exports = { generateTOTP, verifyTOTP };
+  while (secret.length < 16) {
+    secret += BASE32_ALPHABET[(seed.length * 7) % BASE32_ALPHABET.length];
+  }
+
+  return secret.slice(0, 32);
+};
+
+const makeSecret = (qrSecret, tokenId) => qrSecret || deriveLegacySecret(tokenId);
+
+const generateTOTP = (qrSecret, tokenId) => authenticator.generate(makeSecret(qrSecret, tokenId));
+
+const verifyTOTP = async (qrSecret, tokenId, totpCode) =>
+  authenticator.verify({ token: String(totpCode), secret: makeSecret(qrSecret, tokenId) });
+
+const createQrSecret = () => authenticator.generateSecret();
+
+module.exports = { createQrSecret, deriveLegacySecret, generateTOTP, verifyTOTP };

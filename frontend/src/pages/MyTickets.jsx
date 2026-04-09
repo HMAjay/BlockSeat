@@ -13,7 +13,7 @@ const loadRazorpay = () =>
     document.body.appendChild(script);
   });
 
-function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify }) {
+function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify, transferLocked }) {
   return (
     <article className="ticket-card">
       <div className="ticket-topline">
@@ -52,8 +52,8 @@ function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify }) {
           <button type="button" className="btn btn-secondary" onClick={() => onViewQr(ticket)}>
             View QR
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => onTransfer(ticket)}>
-            Transfer
+          <button type="button" className="btn btn-primary" onClick={() => onTransfer(ticket)} disabled={transferLocked}>
+            {transferLocked ? "Transfer Pending" : "Transfer"}
           </button>
           <button
             type="button"
@@ -73,6 +73,7 @@ function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify }) {
 function MyTickets() {
   const [tickets, setTickets] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
@@ -102,8 +103,25 @@ function MyTickets() {
     fetchRequests();
   }, []);
 
+  useEffect(() => {
+    const fetchSentRequests = async () => {
+      try {
+        const { data } = await api.get("/transfer/requests/sent");
+        setSentRequests(data);
+      } catch (error) {
+        if (!message) {
+          setMessage(error.response?.data?.message || "Failed to fetch sent transfer requests");
+        }
+      }
+    };
+    fetchSentRequests();
+  }, []);
+
   const active = tickets.filter((t) => !t.isUsed);
   const used = tickets.filter((t) => t.isUsed);
+  const pendingTransferIds = new Set(
+    sentRequests.filter((request) => request.status === "pending").map((request) => String(request.tokenId))
+  );
 
   const completeTransfer = async (request) => {
     try {
@@ -127,12 +145,14 @@ function MyTickets() {
             razorpay_signature: response.razorpay_signature
           });
           setMessage(`Ticket bought from ${request.sellerBstId}`);
-          const [ticketsResp, requestsResp] = await Promise.all([
+          const [ticketsResp, requestsResp, sentRequestsResp] = await Promise.all([
             api.get("/tickets"),
-            api.get("/transfer/requests/incoming")
+            api.get("/transfer/requests/incoming"),
+            api.get("/transfer/requests/sent")
           ]);
           setTickets(ticketsResp.data);
           setRequests(requestsResp.data);
+          setSentRequests(sentRequestsResp.data);
         }
       };
 
@@ -196,6 +216,7 @@ function MyTickets() {
                 onViewQr={() => navigate(`/qr/${ticket.tokenId}`)}
                 onTransfer={() => navigate(`/transfer/${ticket.tokenId}`)}
                 onVerify={() => navigate(`/verify/${ticket.tokenId}`)}
+                transferLocked={pendingTransferIds.has(String(ticket.tokenId))}
               />
             )) : <div className="empty-state">No active tickets yet. Book one from the event seat map.</div>}
           </div>
@@ -216,6 +237,52 @@ function MyTickets() {
           </div>
         </section>
       </div>
+
+      <section className="section">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">Transferred tickets</h2>
+            <p className="section-copy">Completed transfer requests remain here so you can see tickets that moved to another buyer.</p>
+          </div>
+        </div>
+
+        <div className="stack">
+          {sentRequests.length ? sentRequests.map((request) => {
+            const isCompleted = request.status === "completed";
+            return (
+              <article className="ticket-card" key={request._id}>
+                <div className="ticket-topline">
+                  <div className="ticket-meta">
+                    <span className={`status-badge ${isCompleted ? "good" : ""}`}>
+                      {isCompleted ? "Ticket transferred" : request.status}
+                    </span>
+                    <span className="ticket-id">#{request.tokenId}</span>
+                  </div>
+                  <span className="status-badge">{request.eventId}</span>
+                </div>
+                <div className="ticket-details">
+                  <div className="detail">
+                    <span className="detail-label">To</span>
+                    <span className="detail-value">{request.buyerBstId}</span>
+                  </div>
+                  <div className="detail">
+                    <span className="detail-label">Seat</span>
+                    <span className="detail-value">{request.seat}</span>
+                  </div>
+                  <div className="detail">
+                    <span className="detail-label">Price</span>
+                    <span className="detail-value">Rs. {request.resalePrice}</span>
+                  </div>
+                  <div className="detail">
+                    <span className="detail-label">Tx hash</span>
+                    <span className="detail-value" style={{ wordBreak: "break-all" }}>{request.txHash || request.paymentOrderId || "-"}</span>
+                  </div>
+                </div>
+              </article>
+            );
+          }) : <div className="empty-state">No transferred tickets yet.</div>}
+        </div>
+      </section>
 
       <section className="section">
         <div className="section-header">

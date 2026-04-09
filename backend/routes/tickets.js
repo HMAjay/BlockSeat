@@ -7,6 +7,7 @@ const User = require("../models/User");
 const Ticket = require("../models/Ticket");
 const Event = require("../models/Event");
 const { decryptKey } = require("../utils/walletManager");
+const { createQrSecret } = require("../utils/totpHelper");
 
 const router = express.Router();
 
@@ -65,6 +66,7 @@ router.post("/mint", auth, async (req, res) => {
       maxResalePrice,
       isUsed: false,
       transferCount: 0,
+      qrSecret: createQrSecret(),
       txHash: tx.hash,
     });
 
