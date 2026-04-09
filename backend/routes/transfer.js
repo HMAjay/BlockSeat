@@ -6,14 +6,10 @@ const auth = require("../middleware/authMiddleware");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const TransferRequest = require("../models/TransferRequest");
-<<<<<<< HEAD
-const { contract } = require("../config/blockchain");
-const { createQrSecret } = require("../utils/totpHelper");
-=======
 const { contract, provider, CONTRACT_ABI, adminSigner } = require("../config/blockchain");
 const { ethers } = require("ethers");
 const { decryptKey } = require("../utils/walletManager");
->>>>>>> 885e6721d2b8d64ec68f14441b4f28221639c8b0
+const { createQrSecret } = require("../utils/totpHelper");
 
 const router = express.Router();
 
