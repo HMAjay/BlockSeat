@@ -12,6 +12,7 @@ const { decryptKey } = require("../utils/walletManager");
 const { createQrSecret } = require("../utils/totpHelper");
 const { sendWithRetry } = require("../utils/txRetry");
 const { paymentLimiter } = require("../middleware/rateLimiter");
+const requireQueuePass = require("../middleware/queuePass");
 const validate = require("../middleware/validate");
 const { transferRequestSchema, transferCompleteSchema, mongoIdParamSchema, bstIdParamSchema } = require("../schemas/transferSchema");
 
@@ -101,7 +102,7 @@ router.get("/transfer/requests/sent", auth, async (req, res) => {
   }
 });
 
-router.post("/transfer/request/:id/create-order", auth, paymentLimiter, validate(mongoIdParamSchema, "params"), async (req, res) => {
+router.post("/transfer/request/:id/create-order", auth, requireQueuePass, paymentLimiter, validate(mongoIdParamSchema, "params"), async (req, res) => {
   try {
     const request = await TransferRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: "Transfer request not found" });

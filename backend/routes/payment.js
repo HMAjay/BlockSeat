@@ -2,7 +2,9 @@
 const express = require("express");
 const crypto = require("crypto");
 const Razorpay = require("razorpay");
+const auth = require("../middleware/authMiddleware");
 const { paymentLimiter } = require("../middleware/rateLimiter");
+const requireQueuePass = require("../middleware/queuePass");
 const validate = require("../middleware/validate");
 const { createOrderSchema, verifyPaymentSchema } = require("../schemas/paymentSchema");
 
@@ -13,7 +15,7 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-router.post("/create-order", paymentLimiter, validate(createOrderSchema), async (req, res) => {
+router.post("/create-order", auth, requireQueuePass, paymentLimiter, validate(createOrderSchema), async (req, res) => {
   try {
     const { amount, currency = "INR", receipt = `receipt_${Date.now()}` } = req.body;
 

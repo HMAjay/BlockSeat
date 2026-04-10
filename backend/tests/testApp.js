@@ -6,6 +6,7 @@ process.env.JWT_SECRET = "test-jwt-secret-1234567890";
 process.env.MASTER_ENCRYPTION_KEY = "test-master-key-1234567890";
 process.env.RAZORPAY_KEY_ID = "rzp_test_fake";
 process.env.RAZORPAY_KEY_SECRET = "fake_razorpay_secret";
+process.env.QUEUE_PASS_SECRET = "test-queue-pass-secret-123456";
 process.env.POLYGON_RPC_URL = "http://localhost:8545";
 process.env.ADMIN_PRIVATE_KEY = "0x" + "a".repeat(64);
 process.env.CONTRACT_ADDRESS = "0x" + "b".repeat(40);
@@ -49,7 +50,9 @@ function buildApp() {
 
   // Load routes.
   app.use("/auth", require("../routes/auth"));
+  app.use("/queue", require("../routes/queue"));
   app.use("/events", require("../routes/events"));
+  app.use("/payment", require("../routes/payment"));
   app.use("/tickets", require("../routes/tickets"));
   app.use("/", require("../routes/transfer"));
   app.use("/gate", require("../routes/gate"));
