@@ -11,7 +11,7 @@ import QRDisplay from "./pages/QRDisplay";
 import TransferTicket from "./pages/TransferTicket";
 import GateScanner from "./pages/GateScanner";
 import VerifyTicket from "./pages/VerifyTicket";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/NavBar";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 function ProtectedRoute({ children }) {
