@@ -39,8 +39,11 @@ function Navbar() {
           <button type="button" className="btn btn-secondary" onClick={() => navigate("/my-tickets")}>
             My Tickets
           </button>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate("/events/Match-001")}>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/events")}>
             Browse Events
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/admin")}>
+            Admin
           </button>
           <button type="button" className="btn btn-primary" onClick={handleSignOut}>
             Sign Out

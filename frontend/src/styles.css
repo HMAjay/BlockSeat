@@ -1,17 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap");
+
 :root {
-  --bg: #07111f;
-  --bg-soft: #0d1b31;
-  --panel: rgba(10, 20, 38, 0.82);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --text: #eef4ff;
-  --muted: #a7b7d6;
-  --line: rgba(255, 255, 255, 0.12);
-  --brand: #8fd3ff;
-  --brand-strong: #54b7ff;
-  --accent: #f7c96b;
-  --good: #40d48f;
-  --bad: #ff6b6b;
-  --shadow: 0 22px 55px rgba(0, 0, 0, 0.35);
+  --bg: #161717;
+  --bg-soft: #1f2122;
+  --panel: rgba(37, 40, 41, 0.88);
+  --panel-border: rgba(209, 171, 62, 0.2);
+  --text: #f5f1e8;
+  --muted: #c3b58b;
+  --line: rgba(209, 171, 62, 0.22);
+  --brand: #ec1c24;
+  --brand-strong: #b7171d;
+  --accent: #d1ab3e;
+  --good: #d1ab3e;
+  --bad: #ec1c24;
+  --shadow: 0 20px 46px rgba(0, 0, 0, 0.42);
   --radius-xl: 28px;
   --radius-lg: 20px;
   --radius-md: 16px;
@@ -30,11 +32,11 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(84, 183, 255, 0.18), transparent 30%),
-    radial-gradient(circle at top right, rgba(247, 201, 107, 0.14), transparent 28%),
-    linear-gradient(180deg, #060c17 0%, #091322 45%, #050a12 100%);
+    radial-gradient(circle at top right, rgba(236, 28, 36, 0.2), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(209, 171, 62, 0.14), transparent 30%),
+    linear-gradient(180deg, #121313 0%, #1b1d1e 50%, #101111 100%);
   color: var(--text);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body::before {
@@ -43,9 +45,9 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 72px 72px;
+    linear-gradient(rgba(209, 171, 62, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(209, 171, 62, 0.06) 1px, transparent 1px);
+  background-size: 76px 76px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 88%);
   opacity: 0.35;
 }
@@ -114,7 +116,7 @@ button {
   width: 240px;
   height: 240px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(84, 183, 255, 0.36), transparent 68%);
+  background: radial-gradient(circle, rgba(236, 28, 36, 0.28), transparent 68%);
   filter: blur(8px);
 }
 
@@ -124,8 +126,8 @@ button {
   gap: 8px;
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(143, 211, 255, 0.12);
-  color: var(--brand);
+  background: rgba(236, 28, 36, 0.14);
+  color: #ffd8d9;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -231,14 +233,14 @@ button {
 
 .input::placeholder,
 .textarea::placeholder {
-  color: #7f91b0;
+  color: #a39874;
 }
 
 .input:focus,
 .select:focus,
 .textarea:focus {
-  border-color: rgba(143, 211, 255, 0.55);
-  box-shadow: 0 0 0 4px rgba(84, 183, 255, 0.15);
+  border-color: rgba(209, 171, 62, 0.6);
+  box-shadow: 0 0 0 4px rgba(209, 171, 62, 0.15);
 }
 
 .btn-row {
@@ -265,15 +267,15 @@ button {
 }
 
 .btn-primary {
-  color: #04111f;
+  color: #f8efe2;
   background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-  box-shadow: 0 16px 36px rgba(84, 183, 255, 0.24);
+  box-shadow: 0 16px 34px rgba(236, 28, 36, 0.3);
 }
 
 .btn-secondary {
   color: var(--text);
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(209, 171, 62, 0.3);
+  background: rgba(209, 171, 62, 0.08);
 }
 
 .btn-ghost {
@@ -318,8 +320,8 @@ button {
   position: sticky;
   top: 0;
   z-index: 20;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(5, 10, 18, 0.68);
+  border-bottom: 1px solid rgba(209, 171, 62, 0.2);
+  background: rgba(18, 19, 19, 0.82);
   backdrop-filter: blur(18px);
 }
 
@@ -348,7 +350,7 @@ button {
   height: 40px;
   border-radius: 14px;
   background: linear-gradient(135deg, var(--brand), var(--accent));
-  color: #05111f;
+  color: #1b1310;
   font-weight: 900;
 }
 
@@ -470,21 +472,21 @@ button {
 
 .status-badge.good {
   color: var(--good);
-  border-color: rgba(64, 212, 143, 0.35);
-  background: rgba(64, 212, 143, 0.12);
+  border-color: rgba(209, 171, 62, 0.42);
+  background: rgba(209, 171, 62, 0.16);
 }
 
 .status-badge.bad {
   color: var(--bad);
-  border-color: rgba(255, 107, 107, 0.35);
-  background: rgba(255, 107, 107, 0.12);
+  border-color: rgba(236, 28, 36, 0.45);
+  background: rgba(236, 28, 36, 0.16);
 }
 
 .grid-shell {
   padding: 18px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--panel-border);
-  background: rgba(10, 20, 38, 0.64);
+  background: rgba(24, 26, 27, 0.74);
   box-shadow: var(--shadow);
 }
 
@@ -516,15 +518,15 @@ button {
 }
 
 .seat.available {
-  background: linear-gradient(135deg, #74e5a8, #40d48f);
+  background: linear-gradient(135deg, #e0c676, #d1ab3e);
 }
 
 .seat.taken {
-  background: linear-gradient(135deg, #ff908f, #ff6b6b);
+  background: linear-gradient(135deg, #f7676d, #ec1c24);
 }
 
 .seat.selected {
-  box-shadow: 0 0 0 3px rgba(247, 201, 107, 0.45);
+  box-shadow: 0 0 0 3px rgba(236, 28, 36, 0.45);
 }
 
 .legend {
@@ -568,8 +570,8 @@ button {
   border-radius: var(--radius-xl);
   border: 1px solid var(--panel-border);
   background:
-    radial-gradient(circle at top, rgba(84, 183, 255, 0.16), transparent 40%),
-    rgba(10, 20, 38, 0.78);
+    radial-gradient(circle at top, rgba(236, 28, 36, 0.18), transparent 40%),
+    rgba(24, 26, 27, 0.78);
   box-shadow: var(--shadow);
 }
 
@@ -602,10 +604,10 @@ button {
   position: absolute;
   inset: 20px;
   border-radius: 22px;
-  border: 1px solid rgba(143, 211, 255, 0.25);
+  border: 1px solid rgba(209, 171, 62, 0.28);
   background:
-    linear-gradient(90deg, rgba(143, 211, 255, 0.15) 0 2px, transparent 2px 100%),
-    linear-gradient(rgba(143, 211, 255, 0.15) 0 2px, transparent 2px 100%);
+    linear-gradient(90deg, rgba(209, 171, 62, 0.15) 0 2px, transparent 2px 100%),
+    linear-gradient(rgba(209, 171, 62, 0.15) 0 2px, transparent 2px 100%);
   background-size: 42px 42px;
   opacity: 0.35;
 }
@@ -635,8 +637,8 @@ button {
   border: 0;
   border-radius: 0;
   background:
-    radial-gradient(circle at top right, rgba(247, 201, 107, 0.14), transparent 24%),
-    linear-gradient(160deg, #0c1830 0%, #09111f 100%);
+    radial-gradient(circle at top right, rgba(236, 28, 36, 0.18), transparent 26%),
+    linear-gradient(160deg, #252829 0%, #1b1d1e 100%);
 }
 
 .login-copy {

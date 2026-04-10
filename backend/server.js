@@ -11,6 +11,7 @@ const connectDB = require("./config/db");
 const { globalLimiter } = require("./middleware/rateLimiter");
 
 const authRoutes = require("./routes/auth");
+const adminRoutes = require("./routes/admin");
 const queueRoutes = require("./routes/queue");
 const eventsRoutes = require("./routes/events");
 const paymentRoutes = require("./routes/payment");
@@ -35,6 +36,7 @@ app.use(globalLimiter);
 app.get("/health", (req, res) => res.json({ status: "ok", service: "BlockSeat Backend" }));
 
 app.use("/auth", authRoutes);
+app.use("/admin", adminRoutes);
 app.use("/queue", queueRoutes);
 app.use("/events", eventsRoutes);
 app.use("/payment", paymentRoutes);

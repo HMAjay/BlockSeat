@@ -7,7 +7,8 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("blockseat_token");
-  if (token) {
+  const hasAuthHeader = Boolean(config.headers?.Authorization || config.headers?.authorization);
+  if (token && !hasAuthHeader) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

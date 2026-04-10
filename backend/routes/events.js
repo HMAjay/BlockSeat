@@ -6,6 +6,28 @@ const { eventIdParamSchema } = require("../schemas/eventSchema");
 
 const router = express.Router();
 
+router.get("/", async (req, res) => {
+  try {
+    const events = await Event.find({})
+      .sort({ date: 1 })
+      .select("eventId name date venue totalSeats seats")
+      .lean();
+
+    return res.json(events.map((event) => ({
+      eventId: event.eventId,
+      name: event.name,
+      date: event.date,
+      venue: event.venue,
+      totalSeats: event.totalSeats,
+      availableSeats: Array.isArray(event.seats)
+        ? event.seats.filter((seat) => !seat.isTaken).length
+        : 0,
+    })));
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch events", error: error.message });
+  }
+});
+
 router.get("/:id/seats", validate(eventIdParamSchema, "params"), async (req, res) => {
   try {
     const event = await Event.findOne({ eventId: req.params.id });

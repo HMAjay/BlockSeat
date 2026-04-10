@@ -3,6 +3,8 @@ import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import AdminSchedule from "./pages/AdminSchedule";
+import EventsList from "./pages/EventsList";
 import EventSeatMap from "./pages/EventSeatMap";
 import MyTickets from "./pages/MyTickets";
 import QRDisplay from "./pages/QRDisplay";
@@ -29,6 +31,15 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={<AdminSchedule />} />
+          <Route
+            path="/events"
+            element={
+              <ProtectedRoute>
+                <EventsList />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/events/:id"
             element={
