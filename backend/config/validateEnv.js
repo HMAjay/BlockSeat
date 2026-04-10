@@ -11,12 +11,30 @@ const validateEnv = () => {
     { key: "RAZORPAY_KEY_SECRET", check: (v) => v.length > 0, hint: "must not be empty" }
   ];
 
+  const optional = [
+    { key: "QUEUE_PASS_SECRET", check: (v) => v.length >= 16, hint: "should be at least 16 characters if set" },
+    { key: "REDIS_URL", check: (v) => v.startsWith("redis://") || v.startsWith("rediss://"), hint: "should be a Redis URL if set" },
+    { key: "QUEUE_MAX_ACTIVE_CHECKOUTS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
+    { key: "QUEUE_PASS_TTL_SECONDS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
+    { key: "QUEUE_WAIT_TTL_SECONDS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
+    { key: "QUEUE_JOIN_RATE_LIMIT", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
+    { key: "QUEUE_STATUS_RATE_LIMIT", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
+    { key: "QUEUE_STATUS_MIN_POLL_MS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" }
+  ];
+
   const errors = [];
   for (const { key, check, hint } of required) {
     const val = process.env[key];
     if (!val) {
       errors.push(`  ${key} — missing (${hint})`);
     } else if (!check(val)) {
+      errors.push(`  ${key} — invalid (${hint})`);
+    }
+  }
+
+  for (const { key, check, hint } of optional) {
+    const val = process.env[key];
+    if (val && !check(val)) {
       errors.push(`  ${key} — invalid (${hint})`);
     }
   }
