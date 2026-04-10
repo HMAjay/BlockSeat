@@ -5,9 +5,6 @@ const Razorpay = require("razorpay");
 const auth = require("../middleware/authMiddleware");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
-<<<<<<< HEAD
-const { contract } = require("../config/blockchain");
-=======
 const TransferRequest = require("../models/TransferRequest");
 const { contract, provider, CONTRACT_ABI, adminSigner } = require("../config/blockchain");
 const { ethers } = require("ethers");
@@ -17,7 +14,6 @@ const { sendWithRetry } = require("../utils/txRetry");
 const { paymentLimiter } = require("../middleware/rateLimiter");
 const validate = require("../middleware/validate");
 const { transferRequestSchema, transferCompleteSchema, mongoIdParamSchema, bstIdParamSchema } = require("../schemas/transferSchema");
->>>>>>> PostR1
 
 const router = express.Router();
 
@@ -26,11 +22,7 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-<<<<<<< HEAD
-router.get("/users/lookup/:bstId", auth, async (req, res) => {
-=======
 router.get("/users/lookup/:bstId", auth, validate(bstIdParamSchema, "params"), async (req, res) => {
->>>>>>> PostR1
   try {
     const user = await User.findOne({ bstId: req.params.bstId });
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -44,15 +36,9 @@ router.get("/users/lookup/:bstId", auth, validate(bstIdParamSchema, "params"), a
   }
 });
 
-<<<<<<< HEAD
-router.post("/transfer/create-order", auth, async (req, res) => {
-  try {
-    const { tokenId, resalePrice } = req.body;
-=======
 router.post("/transfer/request", auth, validate(transferRequestSchema), async (req, res) => {
   try {
     const { tokenId, buyerBstId, resalePrice } = req.body;
->>>>>>> PostR1
     const ticket = await Ticket.findOne({ tokenId: Number(tokenId) });
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
     if (ticket.ownerBstId !== req.user.bstId) return res.status(403).json({ message: "Not ticket owner" });
@@ -60,41 +46,6 @@ router.post("/transfer/request", auth, validate(transferRequestSchema), async (r
       return res.status(400).json({ message: "Resale price exceeds cap" });
     }
 
-<<<<<<< HEAD
-    const order = await razorpay.orders.create({
-      amount: Math.round(Number(resalePrice) * 100),
-      currency: "INR",
-      receipt: `transfer_${tokenId}_${Date.now()}`
-    });
-
-    return res.json({ order, maxResalePrice: ticket.maxResalePrice, keyId: process.env.RAZORPAY_KEY_ID });
-  } catch (error) {
-    return res.status(500).json({ message: "Transfer order failed", error: error.message });
-  }
-});
-
-router.post("/transfer/execute", auth, async (req, res) => {
-  try {
-    const {
-      tokenId,
-      recipientBstId,
-      resalePrice,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
-    } = req.body;
-
-    const ticket = await Ticket.findOne({ tokenId: Number(tokenId) });
-    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
-    if (ticket.ownerBstId !== req.user.bstId) return res.status(403).json({ message: "Not ticket owner" });
-    if (Number(resalePrice) > ticket.maxResalePrice) {
-      return res.status(400).json({ message: "Resale price exceeds cap" });
-    }
-
-    const recipient = await User.findOne({ bstId: recipientBstId });
-    if (!recipient) return res.status(404).json({ message: "Recipient not found" });
-
-=======
     const existingRequest = await TransferRequest.findOne({
       tokenId: Number(tokenId),
       sellerBstId: req.user.bstId,
@@ -183,7 +134,6 @@ router.post("/transfer/request/:id/complete", auth, paymentLimiter, validate(mon
       return res.status(400).json({ message: "Payment order does not match this request" });
     }
 
->>>>>>> PostR1
     // Verify Razorpay signature before blockchain transfer.
     const generated = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
@@ -193,10 +143,6 @@ router.post("/transfer/request/:id/complete", auth, paymentLimiter, validate(mon
       return res.status(400).json({ message: "Invalid payment signature" });
     }
 
-<<<<<<< HEAD
-    const tx = await contract.resell(Number(tokenId), recipient.walletAddress, Number(resalePrice));
-    await tx.wait();
-=======
     const recipient = await User.findOne({ bstId: request.buyerBstId });
     if (!recipient) return res.status(404).json({ message: "Recipient not found" });
 
@@ -227,16 +173,10 @@ router.post("/transfer/request/:id/complete", auth, paymentLimiter, validate(mon
       () => sellerContract.resell(Number(request.tokenId), recipient.walletAddress, Number(request.resalePrice)),
       { label: `resell-token-${request.tokenId}` }
     );
->>>>>>> PostR1
 
     ticket.ownerBstId = recipient.bstId;
     ticket.ownerWalletAddress = recipient.walletAddress;
     ticket.transferCount += 1;
-<<<<<<< HEAD
-    await ticket.save();
-
-    return res.json({ message: "Transfer complete", txHash: tx.hash, recipientBstId: recipient.bstId });
-=======
     ticket.qrSecret = createQrSecret();
     ticket.txHash = tx.hash;
     await ticket.save();
@@ -253,14 +193,11 @@ router.post("/transfer/request/:id/complete", auth, paymentLimiter, validate(mon
       recipientBstId: recipient.bstId,
       request
     });
->>>>>>> PostR1
   } catch (error) {
     return res.status(500).json({ message: "Transfer execution failed", error: error.message });
   }
 });
 
-<<<<<<< HEAD
-=======
 router.post("/transfer/request/:id/decline", auth, validate(mongoIdParamSchema, "params"), async (req, res) => {
   try {
     const request = await TransferRequest.findById(req.params.id);
@@ -278,5 +215,4 @@ router.post("/transfer/request/:id/decline", auth, validate(mongoIdParamSchema, 
   }
 });
 
->>>>>>> PostR1
 module.exports = router;

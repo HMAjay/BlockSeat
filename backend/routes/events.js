@@ -1,19 +1,12 @@
 // Event routes expose seat maps for booking UI.
 const express = require("express");
 const Event = require("../models/Event");
-<<<<<<< HEAD
-
-const router = express.Router();
-
-router.get("/:id/seats", async (req, res) => {
-=======
 const validate = require("../middleware/validate");
 const { eventIdParamSchema } = require("../schemas/eventSchema");
 
 const router = express.Router();
 
 router.get("/:id/seats", validate(eventIdParamSchema, "params"), async (req, res) => {
->>>>>>> PostR1
   try {
     const event = await Event.findOne({ eventId: req.params.id });
     if (!event) return res.status(404).json({ message: "Event not found" });
