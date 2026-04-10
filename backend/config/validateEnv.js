@@ -14,6 +14,8 @@ const validateEnv = () => {
   const optional = [
     { key: "QUEUE_PASS_SECRET", check: (v) => v.length >= 16, hint: "should be at least 16 characters if set" },
     { key: "REDIS_URL", check: (v) => v.startsWith("redis://") || v.startsWith("rediss://"), hint: "should be a Redis URL if set" },
+    { key: "CAPTCHA_ENABLED", check: (v) => ["true", "false"].includes(v), hint: "should be true or false if set" },
+    { key: "TURNSTILE_SECRET_KEY", check: (v) => v.length > 20, hint: "should be a valid Turnstile secret if set" },
     { key: "QUEUE_MAX_ACTIVE_CHECKOUTS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
     { key: "QUEUE_PASS_TTL_SECONDS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
     { key: "QUEUE_WAIT_TTL_SECONDS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },

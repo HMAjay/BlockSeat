@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { createWallet, encryptKey } = require("../utils/walletManager");
 const { logger } = require("../config/logger");
+const { verifyCaptcha } = require("../config/captcha");
 const { authLimiter } = require("../middleware/rateLimiter");
 const validate = require("../middleware/validate");
 const { sendOtpSchema, verifyOtpSchema } = require("../schemas/authSchema");
@@ -20,7 +21,15 @@ const generateBstId = async () => {
 
 router.post("/send-otp", authLimiter, validate(sendOtpSchema), async (req, res) => {
   try {
-    const { phone } = req.body;
+    const { phone, captchaToken } = req.body;
+
+    const captcha = await verifyCaptcha({
+      token: captchaToken,
+      remoteIp: req.ip,
+    });
+    if (!captcha.ok) {
+      return res.status(400).json({ message: "CAPTCHA verification failed. Please try again." });
+    }
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     const otpHash = await bcrypt.hash(otp, 10);
