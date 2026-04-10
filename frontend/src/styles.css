@@ -525,6 +525,10 @@ button {
   background: linear-gradient(135deg, #f7676d, #ec1c24);
 }
 
+.seat.listed {
+  background: linear-gradient(135deg, #adb1b4, #7f8589);
+}
+
 .seat.selected {
   box-shadow: 0 0 0 3px rgba(236, 28, 36, 0.45);
 }
@@ -560,6 +564,10 @@ button {
 
 .dot.warn {
   background: var(--accent);
+}
+
+.dot.neutral {
+  background: #8e9498;
 }
 
 .qr-shell {

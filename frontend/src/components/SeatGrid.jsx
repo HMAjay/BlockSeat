@@ -8,14 +8,17 @@ function SeatGrid({ seats, selectedSeatId, selectedSeatIds = [], onSeatClick }) 
     <div className="seat-grid">
       {seats.map((seat) => {
         const isSelected = selectedSet.has(seat.seatId) || seat.seatId === selectedSeatId;
+        const isListed = Boolean(seat.isMarketListed);
+        const isDisabled = seat.isTaken && !isListed;
+        const seatClass = isListed ? "listed" : seat.isTaken ? "taken" : "available";
         return (
           <button
             key={seat.seatId}
             type="button"
             onClick={() => onSeatClick(seat)}
-            disabled={seat.isTaken}
-            className={`seat ${seat.isTaken ? "taken" : "available"} ${isSelected ? "selected" : ""}`}
-            title={`${seat.row}${seat.seatId} - ${seat.isTaken ? "Taken" : "Available"}`}
+            disabled={isDisabled}
+            className={`seat ${seatClass} ${isSelected ? "selected" : ""}`}
+            title={`${seat.row}${seat.seatId} - ${isListed ? "Listed" : seat.isTaken ? "Taken" : "Available"}`}
           >
             {seat.seatId}
           </button>

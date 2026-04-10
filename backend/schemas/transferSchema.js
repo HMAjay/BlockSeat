@@ -9,6 +9,11 @@ const transferRequestSchema = z.object({
   resalePrice: z.number({ coerce: true }).positive("resalePrice must be positive").max(999999, "resalePrice exceeds maximum")
 });
 
+const marketListingSchema = z.object({
+  tokenId: z.number({ coerce: true }).int().positive("tokenId must be a positive integer"),
+  resalePrice: z.number({ coerce: true }).positive("resalePrice must be positive").max(999999, "resalePrice exceeds maximum")
+});
+
 const transferCompleteSchema = z.object({
   razorpay_order_id: z.string().min(1, "Order ID is required"),
   razorpay_payment_id: z.string().min(1, "Payment ID is required"),
@@ -23,4 +28,4 @@ const bstIdParamSchema = z.object({
   bstId: z.string().regex(bstIdRegex, "Must be a valid BST ID")
 });
 
-module.exports = { transferRequestSchema, transferCompleteSchema, mongoIdParamSchema, bstIdParamSchema };
+module.exports = { transferRequestSchema, marketListingSchema, transferCompleteSchema, mongoIdParamSchema, bstIdParamSchema };

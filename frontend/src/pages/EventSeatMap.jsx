@@ -20,7 +20,9 @@ const loadRazorpay = () =>
 function EventSeatMap() {
   const { id } = useParams();
   const [eventData, setEventData] = useState(null);
+  const [marketListings, setMarketListings] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [selectedListing, setSelectedListing] = useState(null);
   const [activeTicketCount, setActiveTicketCount] = useState(0);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
@@ -28,8 +30,12 @@ function EventSeatMap() {
   useEffect(() => {
     const fetchSeats = async () => {
       try {
-        const { data } = await api.get(`/events/${id}/seats`);
-        setEventData(data);
+        const [eventResp, listingResp] = await Promise.all([
+          api.get(`/events/${id}/seats`),
+          api.get(`/market/listings/event/${id}`)
+        ]);
+        setEventData(eventResp.data);
+        setMarketListings(listingResp.data || []);
       } catch (error) {
         setMessage(error.response?.data?.message || "Failed to load seat map");
       }
@@ -51,6 +57,20 @@ function EventSeatMap() {
   }, []);
 
   const toggleSeatSelection = (seat) => {
+    if (seat.isMarketListed) {
+      setSelectedSeats([]);
+      setSelectedListing((prev) => (prev?._id === seat.listingId ? null : {
+        _id: seat.listingId,
+        tokenId: seat.listingTokenId,
+        seat: seat.seatId,
+        stand: seat.stand,
+        row: seat.row,
+        resalePrice: seat.listingPrice,
+      }));
+      return;
+    }
+
+    if (selectedListing) setSelectedListing(null);
     setSelectedSeats((prev) => {
       const exists = prev.some((item) => item.seatId === seat.seatId);
       if (exists) {
@@ -63,6 +83,53 @@ function EventSeatMap() {
       }
       return [...prev, seat];
     });
+  };
+
+  const handleBuyListedSeat = async () => {
+    try {
+      if (!selectedListing) return setMessage("Select a listed grey seat first");
+      if (activeTicketCount + 1 > MAX_ACTIVE_TICKETS) {
+        return setMessage(`Booking blocked: wallet + selected seats cannot exceed ${MAX_ACTIVE_TICKETS} active tickets.`);
+      }
+
+      setMessage("Joining checkout waiting room...");
+      const queuePass = await acquireCheckoutQueuePass({ onStatus: setMessage });
+      const loaded = await loadRazorpay();
+      if (!loaded) return setMessage("Unable to load Razorpay SDK");
+
+      const orderResp = await api.post(
+        `/market/listing/${selectedListing._id}/create-order`,
+        {},
+        { headers: { "X-BlockSeat-Queue-Pass": queuePass } }
+      );
+      const order = orderResp.data.order;
+
+      const options = {
+        key: orderResp.data.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "BlockSeat",
+        description: `Buy listed seat ${selectedListing.seat}`,
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            await api.post(`/market/listing/${selectedListing._id}/complete`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            setMessage(`Purchased listed seat ${selectedListing.seat}`);
+            setTimeout(() => navigate("/my-tickets"), 1000);
+          } catch (error) {
+            setMessage(error.response?.data?.message || "Market purchase failed after payment");
+          }
+        }
+      };
+      const rz = new window.Razorpay(options);
+      rz.open();
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Unable to buy listed seat");
+    }
   };
 
   const handleBook = async () => {
@@ -127,7 +194,20 @@ function EventSeatMap() {
     return <div className="empty-state">{message || "Loading event seats..."}</div>;
   }
 
-  const availableCount = eventData.seats.filter((seat) => !seat.isTaken).length;
+  const listingBySeat = new Map(marketListings.map((listing) => [listing.seat, listing]));
+  const seatsWithListings = eventData.seats.map((seat) => {
+    const listing = listingBySeat.get(seat.seatId);
+    if (!listing) return seat;
+    return {
+      ...seat,
+      isMarketListed: true,
+      listingId: listing._id,
+      listingTokenId: listing.tokenId,
+      listingPrice: listing.resalePrice,
+    };
+  });
+
+  const availableCount = seatsWithListings.filter((seat) => !seat.isTaken || seat.isMarketListed).length;
   const totalSelectedPrice = selectedSeats.reduce((sum, seat) => sum + Number(seat.price), 0);
   const remainingSlots = Math.max(0, MAX_ACTIVE_TICKETS - activeTicketCount);
 
@@ -159,18 +239,20 @@ function EventSeatMap() {
           <div className="section-header">
             <div>
               <h2 className="section-title">Choose your seat</h2>
-              <p className="section-copy">Green seats are open, red seats are already claimed. Max 4 active tickets in wallet. Remaining slots: {remainingSlots}.</p>
+              <p className="section-copy">Gold seats are open, red are sold, grey are resale seats. Max 4 active tickets. Remaining slots: {remainingSlots}.</p>
             </div>
           </div>
           <div className="grid-shell">
             <SeatGrid
-              seats={eventData.seats}
+              seats={seatsWithListings}
               selectedSeatIds={selectedSeats.map((seat) => seat.seatId)}
+              selectedSeatId={selectedListing?.seat}
               onSeatClick={toggleSeatSelection}
             />
             <div className="legend">
               <span className="legend-item"><span className="dot good" /> Available</span>
               <span className="legend-item"><span className="dot bad" /> Taken</span>
+              <span className="legend-item"><span className="dot neutral" /> Resale</span>
               <span className="legend-item"><span className="dot warn" /> Selected</span>
             </div>
           </div>
@@ -186,7 +268,45 @@ function EventSeatMap() {
             </div>
           </div>
 
-          {selectedSeats.length ? (
+          {selectedListing ? (
+            <div className="ticket-card">
+              <div className="ticket-topline">
+                <div className="ticket-meta">
+                  <span className="status-badge">Resale seat</span>
+                  <span className="ticket-id">{selectedListing.seat}</span>
+                </div>
+                <span className="status-badge">Token #{selectedListing.tokenId}</span>
+              </div>
+
+              <div className="ticket-details">
+                <div className="detail">
+                  <span className="detail-label">Seat</span>
+                  <span className="detail-value">{selectedListing.seat}</span>
+                </div>
+                <div className="detail">
+                  <span className="detail-label">Stand</span>
+                  <span className="detail-value">{selectedListing.stand}</span>
+                </div>
+                <div className="detail">
+                  <span className="detail-label">Row</span>
+                  <span className="detail-value">{selectedListing.row}</span>
+                </div>
+                <div className="detail">
+                  <span className="detail-label">Price</span>
+                  <span className="detail-value">Rs. {selectedListing.resalePrice}</span>
+                </div>
+              </div>
+
+              <div className="btn-row" style={{ marginTop: 16 }}>
+                <button type="button" className="btn btn-primary" onClick={handleBuyListedSeat}>
+                  Buy Listed Seat
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setSelectedListing(null)}>
+                  Clear
+                </button>
+              </div>
+            </div>
+          ) : selectedSeats.length ? (
             <div className="ticket-card">
               <div className="ticket-topline">
                 <div className="ticket-meta">
@@ -225,7 +345,7 @@ function EventSeatMap() {
               </div>
             </div>
           ) : (
-            <div className="empty-state">Select one or more seats to unlock the booking summary.</div>
+            <div className="empty-state">Select gold seats to mint, or a grey seat to buy resale.</div>
           )}
         </div>
 
