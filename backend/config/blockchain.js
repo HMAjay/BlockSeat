@@ -1,6 +1,7 @@
-// This module provides shared ethers provider/signer/contract access.
+// This module provides shared ethers provider/signer/contract access..
 const { ethers } = require("ethers");
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 // Minimal ABI needed by backend routes.
 const CONTRACT_ABI = [

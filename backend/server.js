@@ -1,8 +1,21 @@
 // Main Express server bootstraps DB, middleware, and all API route groups.
+<<<<<<< HEAD
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
+=======
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+const validateEnv = require("./config/validateEnv");
+validateEnv();
+
+const express = require("express");
+const cors = require("cors");
+const connectDB = require("./config/db");
+//const { logger, httpLogger } = require("./config/logger");
+const { globalLimiter } = require("./middleware/rateLimiter");
+>>>>>>> PostR1
 
 const authRoutes = require("./routes/auth");
 const eventsRoutes = require("./routes/events");
@@ -16,8 +29,18 @@ const PORT = process.env.PORT || 5000;
 
 connectDB();
 
+<<<<<<< HEAD
 app.use(cors({ origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:5000"] }));
 app.use(express.json());
+=======
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
+  : ["http://localhost:3000", "http://localhost:3001"];
+app.use(cors({ origin: corsOrigins }));
+app.use(express.json());
+//app.use(httpLogger);
+app.use(globalLimiter);
+>>>>>>> PostR1
 
 // Health route helps quick sanity checks.
 app.get("/health", (req, res) => res.json({ status: "ok", service: "BlockSeat Backend" }));

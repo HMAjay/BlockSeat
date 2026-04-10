@@ -4,6 +4,13 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { createWallet, encryptKey } = require("../utils/walletManager");
+<<<<<<< HEAD
+=======
+const { logger } = require("../config/logger");
+const { authLimiter } = require("../middleware/rateLimiter");
+const validate = require("../middleware/validate");
+const { sendOtpSchema, verifyOtpSchema } = require("../schemas/authSchema");
+>>>>>>> PostR1
 
 const router = express.Router();
 const otpStore = new Map(); // In-memory OTP store for demo usage.
@@ -14,17 +21,29 @@ const generateBstId = async () => {
   return `BST-${year}-${String(count + 1).padStart(5, "0")}`;
 };
 
+<<<<<<< HEAD
 router.post("/send-otp", async (req, res) => {
   try {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ message: "Phone is required" });
+=======
+router.post("/send-otp", authLimiter, validate(sendOtpSchema), async (req, res) => {
+  try {
+    const { phone } = req.body;
+>>>>>>> PostR1
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = Date.now() + 5 * 60 * 1000;
 
     otpStore.set(phone, { otpHash, expiresAt });
+<<<<<<< HEAD
     console.log(`[MOCK SMS] OTP for ${phone}: ${otp}`);
+=======
+    if (process.env.NODE_ENV !== "production") {
+      logger.debug(`[MOCK SMS] OTP for ${phone}: ${otp}`);
+    }
+>>>>>>> PostR1
 
     return res.json({ message: "OTP sent successfully" });
   } catch (error) {
@@ -32,10 +51,16 @@ router.post("/send-otp", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 router.post("/verify-otp", async (req, res) => {
   try {
     const { phone, otp } = req.body;
     if (!phone || !otp) return res.status(400).json({ message: "Phone and OTP are required" });
+=======
+router.post("/verify-otp", authLimiter, validate(verifyOtpSchema), async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+>>>>>>> PostR1
 
     const record = otpStore.get(phone);
     if (!record || Date.now() > record.expiresAt) {

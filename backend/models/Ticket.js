@@ -12,6 +12,7 @@ const ticketSchema = new mongoose.Schema(
     maxResalePrice: { type: Number, required: true },
     isUsed: { type: Boolean, default: false },
     transferCount: { type: Number, default: 0 },
+    qrSecret: { type: String, required: true, index: true },
     txHash: {
       type: String,
       required: true,
@@ -20,5 +21,7 @@ const ticketSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+ticketSchema.index({ eventId: 1, seat: 1 }, { unique: true });
 
 module.exports = mongoose.model("Ticket", ticketSchema);

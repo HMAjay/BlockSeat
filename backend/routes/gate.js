@@ -2,6 +2,7 @@
 const express = require("express");
 const { contract } = require("../config/blockchain");
 const Ticket = require("../models/Ticket");
+<<<<<<< HEAD
 const { verifyTOTP } = require("../utils/totpHelper");
 
 const router = express.Router();
@@ -13,6 +14,25 @@ router.post("/verify", async (req, res) => {
 
     // (1) Validate TOTP freshness and authenticity.
     if (!verifyTOTP(tokenId, totpCode)) {
+=======
+const { deriveLegacySecret, verifyTOTP } = require("../utils/totpHelper");
+const { sendWithRetry } = require("../utils/txRetry");
+const validate = require("../middleware/validate");
+const { gateVerifySchema, gateBurnSchema } = require("../schemas/gateSchema");
+
+const router = express.Router();
+
+router.post("/verify", validate(gateVerifySchema), async (req, res) => {
+  try {
+    const { tokenId, totpCode } = req.body;
+
+    const ticket = await Ticket.findOne({ tokenId: Number(tokenId) });
+    if (!ticket) return res.status(400).json({ status: "INVALID", reason: "Ticket not found in DB" });
+
+    // (1) Validate TOTP freshness and authenticity.
+    const qrSecret = ticket.qrSecret || deriveLegacySecret(tokenId);
+    if (!(await verifyTOTP(qrSecret, tokenId, totpCode))) {
+>>>>>>> PostR1
       return res.status(400).json({ status: "INVALID", reason: "Invalid TOTP" });
     }
 
@@ -24,9 +44,12 @@ router.post("/verify", async (req, res) => {
       return res.status(400).json({ status: "INVALID", reason: "Token does not exist on-chain" });
     }
 
+<<<<<<< HEAD
     const ticket = await Ticket.findOne({ tokenId: Number(tokenId) });
     if (!ticket) return res.status(400).json({ status: "INVALID", reason: "Ticket not found in DB" });
 
+=======
+>>>>>>> PostR1
     // (3) Verify on-chain owner matches backend owner wallet record.
     if (ticket.ownerWalletAddress.toLowerCase() !== onChainOwner.toLowerCase()) {
       return res.status(400).json({ status: "INVALID", reason: "Owner mismatch" });
@@ -39,8 +62,15 @@ router.post("/verify", async (req, res) => {
     }
 
     // Mark ticket used as part of successful gate verify flow.
+<<<<<<< HEAD
     const tx = await contract.burnOnEntry(Number(tokenId));
     await tx.wait();
+=======
+    const { tx } = await sendWithRetry(
+      () => contract.burnOnEntry(Number(tokenId)),
+      { label: `burn-verify-${tokenId}` }
+    );
+>>>>>>> PostR1
     ticket.isUsed = true;
     await ticket.save();
 
@@ -50,6 +80,7 @@ router.post("/verify", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 router.post("/burn", async (req, res) => {
   try {
     const { tokenId } = req.body;
@@ -57,6 +88,16 @@ router.post("/burn", async (req, res) => {
 
     const tx = await contract.burnOnEntry(Number(tokenId));
     await tx.wait();
+=======
+router.post("/burn", validate(gateBurnSchema), async (req, res) => {
+  try {
+    const { tokenId } = req.body;
+
+    const { tx } = await sendWithRetry(
+      () => contract.burnOnEntry(Number(tokenId)),
+      { label: `burn-${tokenId}` }
+    );
+>>>>>>> PostR1
 
     await Ticket.updateOne({ tokenId: Number(tokenId) }, { $set: { isUsed: true } });
     return res.json({ message: "Ticket burned on entry", txHash: tx.hash });
