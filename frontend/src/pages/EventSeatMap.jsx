@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import SeatGrid from "../components/SeatGrid";
+import { acquireCheckoutQueuePass } from "../services/queuePass";
 
 const MAX_ACTIVE_TICKETS = 4;
 
@@ -73,8 +74,15 @@ function EventSeatMap() {
 
       const totalAmount = selectedSeats.reduce((sum, seat) => sum + Number(seat.price), 0);
 
+      setMessage("Joining checkout waiting room...");
+      const queuePass = await acquireCheckoutQueuePass({ onStatus: setMessage });
+
       // Step 1: Create payment order for the combined selected seat amount.
-      const orderResp = await api.post("/payment/create-order", { amount: totalAmount });
+      const orderResp = await api.post(
+        "/payment/create-order",
+        { amount: totalAmount },
+        { headers: { "X-BlockSeat-Queue-Pass": queuePass } }
+      );
       const order = orderResp.data;
 
       // Step 2: Launch Razorpay popup and mint ticket only after successful payment.

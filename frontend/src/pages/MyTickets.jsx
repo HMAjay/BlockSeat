@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { acquireCheckoutQueuePass } from "../services/queuePass";
 
 const loadRazorpay = () =>
   new Promise((resolve) => {
@@ -125,10 +126,16 @@ function MyTickets() {
 
   const completeTransfer = async (request) => {
     try {
+      setMessage("Joining checkout waiting room...");
+      const queuePass = await acquireCheckoutQueuePass({ onStatus: setMessage });
       const loaded = await loadRazorpay();
       if (!loaded) return setMessage("Unable to load Razorpay SDK");
 
-      const orderResp = await api.post(`/transfer/request/${request._id}/create-order`);
+      const orderResp = await api.post(
+        `/transfer/request/${request._id}/create-order`,
+        {},
+        { headers: { "X-BlockSeat-Queue-Pass": queuePass } }
+      );
       const order = orderResp.data.order;
 
       const options = {
