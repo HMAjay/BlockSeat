@@ -47,7 +47,6 @@ It supports:
    - `RAZORPAY_KEY_ID`
    - `RAZORPAY_KEY_SECRET`
    - `TOTP_ISSUER`
-   - `GATE_ADMIN_BST_IDS`
 5. Start backend:
    - `npm run dev`
 
@@ -148,7 +147,6 @@ Create one event document in `events` with this data:
 
 - Open `/gate-scanner` manually
 - This is a gate/admin utility page, not shown in the customer nav
-- Only BST IDs listed in `GATE_ADMIN_BST_IDS` can use the scanner or call `/gate/*`
 - Paste a QR image URL or upload a QR image
 - Decode the QR, then verify the ticket
 - A valid scan burns the ticket on entry and marks it used

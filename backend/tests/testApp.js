@@ -9,7 +9,6 @@ process.env.RAZORPAY_KEY_SECRET = "fake_razorpay_secret";
 process.env.POLYGON_RPC_URL = "http://localhost:8545";
 process.env.ADMIN_PRIVATE_KEY = "0x" + "a".repeat(64);
 process.env.CONTRACT_ADDRESS = "0x" + "b".repeat(40);
-process.env.GATE_ADMIN_BST_IDS = "BST-2025-00001";
 process.env.NODE_ENV = "test";
 
 // Mock blockchain module before requiring routes.
@@ -58,16 +57,8 @@ function buildApp() {
   return app;
 }
 
-function makeToken(
-  bstId = "BST-2025-00001",
-  walletAddress = "0x" + "c".repeat(40),
-  options = {}
-) {
-  return jwt.sign(
-    { bstId, walletAddress, isGateAdmin: Boolean(options.isGateAdmin) },
-    process.env.JWT_SECRET,
-    { expiresIn: "1h" }
-  );
+function makeToken(bstId = "BST-2025-00001", walletAddress = "0x" + "c".repeat(40)) {
+  return jwt.sign({ bstId, walletAddress }, process.env.JWT_SECRET, { expiresIn: "1h" });
 }
 
 module.exports = { buildApp, makeToken, mockContract };

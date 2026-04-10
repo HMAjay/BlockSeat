@@ -17,14 +17,6 @@ function ProtectedRoute({ children }) {
   return token ? children : <Navigate to="/login" replace />;
 }
 
-function GateAdminRoute({ children }) {
-  const token = localStorage.getItem("blockseat_token");
-  const isGateAdmin = localStorage.getItem("blockseat_is_gate_admin") === "true";
-
-  if (!token) return <Navigate to="/login" replace />;
-  return isGateAdmin ? children : <Navigate to="/my-tickets" replace />;
-}
-
 function App() {
   const isAuthed = Boolean(localStorage.getItem("blockseat_token"));
 
@@ -79,9 +71,9 @@ function App() {
           <Route
             path="/gate-scanner"
             element={
-              <GateAdminRoute>
+              <ProtectedRoute>
                 <GateScanner />
-              </GateAdminRoute>
+              </ProtectedRoute>
             }
           />
           <Route path="*" element={<Navigate to={isAuthed ? "/my-tickets" : "/login"} replace />} />

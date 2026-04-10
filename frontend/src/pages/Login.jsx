@@ -25,7 +25,6 @@ function Login() {
       localStorage.setItem("blockseat_token", data.token);
       localStorage.setItem("blockseat_bstId", data.bstId);
       localStorage.setItem("blockseat_wallet", data.walletAddress);
-      localStorage.setItem("blockseat_is_gate_admin", String(Boolean(data.isGateAdmin)));
       setBstId(data.bstId);
       setMessage("Login successful");
       setTimeout(() => navigate("/events/Match-001"), 900);

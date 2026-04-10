@@ -2,8 +2,6 @@
 const express = require("express");
 const { contract } = require("../config/blockchain");
 const Ticket = require("../models/Ticket");
-const auth = require("../middleware/authMiddleware");
-const requireGateAdmin = require("../middleware/gateAdminMiddleware");
 const { deriveLegacySecret, verifyTOTP } = require("../utils/totpHelper");
 const { sendWithRetry } = require("../utils/txRetry");
 const validate = require("../middleware/validate");
@@ -11,7 +9,7 @@ const { gateVerifySchema, gateBurnSchema } = require("../schemas/gateSchema");
 
 const router = express.Router();
 
-router.post("/verify", auth, requireGateAdmin, validate(gateVerifySchema), async (req, res) => {
+router.post("/verify", validate(gateVerifySchema), async (req, res) => {
   try {
     const { tokenId, totpCode } = req.body;
 
@@ -57,7 +55,7 @@ router.post("/verify", auth, requireGateAdmin, validate(gateVerifySchema), async
   }
 });
 
-router.post("/burn", auth, requireGateAdmin, validate(gateBurnSchema), async (req, res) => {
+router.post("/burn", validate(gateBurnSchema), async (req, res) => {
   try {
     const { tokenId } = req.body;
 

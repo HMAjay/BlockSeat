@@ -4,7 +4,6 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { createWallet, encryptKey } = require("../utils/walletManager");
-const { isGateAdminBstId } = require("../utils/gateAdmin");
 const { logger } = require("../config/logger");
 const { authLimiter } = require("../middleware/rateLimiter");
 const validate = require("../middleware/validate");
@@ -62,9 +61,8 @@ router.post("/verify-otp", authLimiter, validate(verifyOtpSchema), async (req, r
       });
     }
 
-    const isGateAdmin = isGateAdminBstId(user.bstId);
     const token = jwt.sign(
-      { bstId: user.bstId, walletAddress: user.walletAddress, isGateAdmin },
+      { bstId: user.bstId, walletAddress: user.walletAddress },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -73,8 +71,7 @@ router.post("/verify-otp", authLimiter, validate(verifyOtpSchema), async (req, r
       message: "OTP verified",
       token,
       bstId: user.bstId,
-      walletAddress: user.walletAddress,
-      isGateAdmin
+      walletAddress: user.walletAddress
     });
   } catch (error) {
     return res.status(500).json({ message: "OTP verification failed", error: error.message });

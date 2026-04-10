@@ -1,6 +1,4 @@
 // Validates required environment variables at startup and crashes fast with clear errors.
-const { hasValidGateAdminConfig } = require("../utils/gateAdmin");
-
 const validateEnv = () => {
   const required = [
     { key: "MONGO_URI", check: (v) => v.startsWith("mongodb"), hint: "must start with 'mongodb'" },
@@ -25,14 +23,6 @@ const validateEnv = () => {
 
   if (errors.length) {
     console.error("\n[BlockSeat] Environment validation failed:\n" + errors.join("\n") + "\n");
-    process.exit(1);
-  }
-
-  if (process.env.GATE_ADMIN_BST_IDS && !hasValidGateAdminConfig()) {
-    console.error(
-      "\n[BlockSeat] Environment validation failed:\n" +
-      "  GATE_ADMIN_BST_IDS — invalid (must be comma-separated BST IDs like BST-2026-00001)\n"
-    );
     process.exit(1);
   }
 };

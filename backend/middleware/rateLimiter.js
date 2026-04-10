@@ -1,28 +1,8 @@
-// Rate limiters scoped by endpoint sensitivity.
-const rateLimit = require("express-rate-limit");
+// Rate limiting is disabled. All limiter exports are pass-through middleware.
+const passthrough = (req, res, next) => next();
 
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many requests, please try again later" }
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many auth attempts, please try again in 15 minutes" }
-});
-
-const paymentLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many payment requests, please try again later" }
-});
+const globalLimiter = passthrough;
+const authLimiter = passthrough;
+const paymentLimiter = passthrough;
 
 module.exports = { globalLimiter, authLimiter, paymentLimiter };

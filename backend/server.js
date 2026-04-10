@@ -7,7 +7,7 @@ validateEnv();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
-const { logger, httpLogger } = require("./config/logger");
+//const { logger, httpLogger } = require("./config/logger");
 const { globalLimiter } = require("./middleware/rateLimiter");
 
 const authRoutes = require("./routes/auth");
@@ -27,7 +27,7 @@ const corsOrigins = process.env.CORS_ORIGINS
   : ["http://localhost:3000", "http://localhost:3001"];
 app.use(cors({ origin: corsOrigins }));
 app.use(express.json());
-app.use(httpLogger);
+//app.use(httpLogger);
 app.use(globalLimiter);
 
 // Health route helps quick sanity checks.
@@ -41,5 +41,5 @@ app.use("/", transferRoutes);
 app.use("/gate", gateRoutes);
 
 app.listen(PORT, () => {
-  logger.info(`BlockSeat backend listening on http://localhost:${PORT}`);
+  console.log(`BlockSeat backend listening on http://localhost:${PORT}`);
 });

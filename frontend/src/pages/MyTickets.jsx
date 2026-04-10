@@ -198,6 +198,7 @@ function MyTickets() {
             <span className="stat-label">Total in wallet</span>
           </div>
         </div>
+
       </section>
 
       <div className="layout-split">

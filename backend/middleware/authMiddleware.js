@@ -11,11 +11,7 @@ module.exports = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = {
-      bstId: decoded.bstId,
-      walletAddress: decoded.walletAddress,
-      isGateAdmin: Boolean(decoded.isGateAdmin)
-    };
+    req.user = { bstId: decoded.bstId, walletAddress: decoded.walletAddress };
     return next();
   } catch (error) {
     return res.status(401).json({ message: "Unauthorized: invalid token" });
