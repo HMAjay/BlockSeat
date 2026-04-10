@@ -206,9 +206,6 @@ function MyTickets() {
           </div>
         </div>
 
-        <button type="button" className="btn btn-primary" onClick={() => navigate("/events/Match-001")} style={{ marginTop: 24 }}>
-          Browse Events
-        </button>
       </section>
 
       <div className="layout-split">

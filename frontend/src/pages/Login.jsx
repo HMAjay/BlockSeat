@@ -91,7 +91,7 @@ function Login() {
       localStorage.setItem("blockseat_wallet", data.walletAddress);
       setBstId(data.bstId);
       setMessage("Login successful");
-      setTimeout(() => navigate("/events/Match-001"), 900);
+      setTimeout(() => navigate("/"), 900);
     } catch (error) {
       setMessage(error.response?.data?.message || "OTP verification failed");
     }

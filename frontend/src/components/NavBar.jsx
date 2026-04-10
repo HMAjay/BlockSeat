@@ -33,8 +33,14 @@ function Navbar() {
               BST ID <strong>{bstId}</strong>
             </span>
           )}
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/")}>
+            Home
+          </button>
           <button type="button" className="btn btn-secondary" onClick={() => navigate("/my-tickets")}>
             My Tickets
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/events/Match-001")}>
+            Browse Events
           </button>
           <button type="button" className="btn btn-primary" onClick={handleSignOut}>
             Sign Out

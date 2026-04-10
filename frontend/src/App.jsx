@@ -1,6 +1,7 @@
 // App configures routes and protects authenticated pages.
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
 import EventSeatMap from "./pages/EventSeatMap";
 import MyTickets from "./pages/MyTickets";
@@ -26,7 +27,7 @@ function App() {
       <main className="app-main">
         <ErrorBoundary>
         <Routes>
-          <Route path="/" element={<Navigate to={isAuthed ? "/my-tickets" : "/login"} replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route
             path="/events/:id"
@@ -76,7 +77,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to={isAuthed ? "/my-tickets" : "/login"} replace />} />
+          <Route path="*" element={<Navigate to={isAuthed ? "/" : "/login"} replace />} />
         </Routes>
         </ErrorBoundary>
       </main>
