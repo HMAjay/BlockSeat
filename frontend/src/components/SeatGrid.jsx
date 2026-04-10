@@ -1,11 +1,13 @@
 // SeatGrid renders a compact selectable, color-coded ticket map.
 import React from "react";
 
-function SeatGrid({ seats, selectedSeatId, onSeatClick }) {
+function SeatGrid({ seats, selectedSeatId, selectedSeatIds = [], onSeatClick }) {
+  const selectedSet = new Set(selectedSeatIds);
+
   return (
     <div className="seat-grid">
       {seats.map((seat) => {
-        const isSelected = seat.seatId === selectedSeatId;
+        const isSelected = selectedSet.has(seat.seatId) || seat.seatId === selectedSeatId;
         return (
           <button
             key={seat.seatId}

@@ -14,6 +14,7 @@ const validate = require("../middleware/validate");
 const { mintSchema } = require("../schemas/ticketSchema");
 
 const router = express.Router();
+const MAX_ACTIVE_TICKETS = 4;
 
 router.get("/", auth, async (req, res) => {
   try {
@@ -31,6 +32,16 @@ router.get("/", auth, async (req, res) => {
 router.post("/mint", auth, validate(mintSchema), async (req, res) => {
   try {
     const { tokenId, eventId, seat, faceValue } = req.body;
+
+    const activeTicketCount = await Ticket.countDocuments({
+      ownerBstId: req.user.bstId,
+      isUsed: false,
+    });
+    if (activeTicketCount >= MAX_ACTIVE_TICKETS) {
+      return res.status(400).json({
+        message: `Active ticket limit reached. You can hold at most ${MAX_ACTIVE_TICKETS} active tickets.`,
+      });
+    }
 
     const buyer = await User.findOne({ bstId: req.user.bstId });
     if (!buyer) return res.status(404).json({ message: "Buyer not found" });

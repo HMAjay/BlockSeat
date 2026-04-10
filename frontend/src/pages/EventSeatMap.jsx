@@ -4,6 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import SeatGrid from "../components/SeatGrid";
 
+const MAX_ACTIVE_TICKETS = 4;
+
 const loadRazorpay = () =>
   new Promise((resolve) => {
     if (window.Razorpay) return resolve(true);
@@ -17,7 +19,8 @@ const loadRazorpay = () =>
 function EventSeatMap() {
   const { id } = useParams();
   const [eventData, setEventData] = useState(null);
-  const [selectedSeat, setSelectedSeat] = useState(null);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [activeTicketCount, setActiveTicketCount] = useState(0);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
@@ -33,12 +36,45 @@ function EventSeatMap() {
     fetchSeats();
   }, [id]);
 
+  useEffect(() => {
+    const fetchWalletTickets = async () => {
+      try {
+        const { data } = await api.get("/tickets");
+        const active = data.filter((ticket) => !ticket.isUsed).length;
+        setActiveTicketCount(active);
+      } catch (error) {
+        setMessage(error.response?.data?.message || "Failed to load wallet tickets");
+      }
+    };
+    fetchWalletTickets();
+  }, []);
+
+  const toggleSeatSelection = (seat) => {
+    setSelectedSeats((prev) => {
+      const exists = prev.some((item) => item.seatId === seat.seatId);
+      if (exists) {
+        return prev.filter((item) => item.seatId !== seat.seatId);
+      }
+      const remainingLimit = Math.max(0, MAX_ACTIVE_TICKETS - activeTicketCount);
+      if (prev.length >= remainingLimit) {
+        setMessage(`You can hold at most ${MAX_ACTIVE_TICKETS} active tickets. Wallet has ${activeTicketCount}.`);
+        return prev;
+      }
+      return [...prev, seat];
+    });
+  };
+
   const handleBook = async () => {
     try {
-      if (!selectedSeat) return setMessage("Select a seat first");
+      if (!selectedSeats.length) return setMessage("Select at least one seat first");
+      if (activeTicketCount + selectedSeats.length > MAX_ACTIVE_TICKETS) {
+        return setMessage(`Booking blocked: wallet + selected seats cannot exceed ${MAX_ACTIVE_TICKETS} active tickets.`);
+      }
 
-      // Step 1: Create payment order for selected seat price.
-      const orderResp = await api.post("/payment/create-order", { amount: selectedSeat.price });
+      const totalAmount = selectedSeats.reduce((sum, seat) => sum + Number(seat.price), 0);
+
+      // Step 1: Create payment order for the combined selected seat amount.
+      const orderResp = await api.post("/payment/create-order", { amount: totalAmount });
       const order = orderResp.data;
 
       // Step 2: Launch Razorpay popup and mint ticket only after successful payment.
@@ -50,18 +86,26 @@ function EventSeatMap() {
         amount: order.amount,
         currency: order.currency,
         name: "BlockSeat",
-        description: `Ticket for ${selectedSeat.seatId}`,
+        description: `${selectedSeats.length} ticket(s) for ${eventData.name}`,
         order_id: order.id,
         handler: async () => {
-          const tokenId = Date.now();
-          await api.post("/tickets/mint", {
-            tokenId,
-            eventId: eventData.eventId,
-            seat: selectedSeat.seatId,
-            faceValue: selectedSeat.price
-          });
-          setMessage("Payment successful. Ticket minted.");
-          setTimeout(() => navigate("/my-tickets"), 1000);
+          try {
+            let mintedCount = 0;
+            for (const [index, seat] of selectedSeats.entries()) {
+              const tokenId = Date.now() + index;
+              await api.post("/tickets/mint", {
+                tokenId,
+                eventId: eventData.eventId,
+                seat: seat.seatId,
+                faceValue: seat.price
+              });
+              mintedCount += 1;
+            }
+            setMessage(`Payment successful. ${mintedCount} ticket(s) minted.`);
+            setTimeout(() => navigate("/my-tickets"), 1000);
+          } catch (mintError) {
+            setMessage(mintError.response?.data?.message || "Payment succeeded, but one or more seats failed to mint");
+          }
         }
       };
       const rz = new window.Razorpay(options);
@@ -76,6 +120,8 @@ function EventSeatMap() {
   }
 
   const availableCount = eventData.seats.filter((seat) => !seat.isTaken).length;
+  const totalSelectedPrice = selectedSeats.reduce((sum, seat) => sum + Number(seat.price), 0);
+  const remainingSlots = Math.max(0, MAX_ACTIVE_TICKETS - activeTicketCount);
 
   return (
     <div className="page-grid">
@@ -105,14 +151,14 @@ function EventSeatMap() {
           <div className="section-header">
             <div>
               <h2 className="section-title">Choose your seat</h2>
-              <p className="section-copy">Green seats are open, red seats are already claimed. Your selection appears on the right.</p>
+              <p className="section-copy">Green seats are open, red seats are already claimed. Max 4 active tickets in wallet. Remaining slots: {remainingSlots}.</p>
             </div>
           </div>
           <div className="grid-shell">
             <SeatGrid
               seats={eventData.seats}
-              selectedSeatId={selectedSeat?.seatId}
-              onSeatClick={setSelectedSeat}
+              selectedSeatIds={selectedSeats.map((seat) => seat.seatId)}
+              onSeatClick={toggleSeatSelection}
             />
             <div className="legend">
               <span className="legend-item"><span className="dot good" /> Available</span>
@@ -128,36 +174,36 @@ function EventSeatMap() {
           <div className="section-header">
             <div>
               <h2 className="section-title">Booking summary</h2>
-              <p className="section-copy">Review the seat, price, and stand before you open Razorpay.</p>
+              <p className="section-copy">Wallet active: {activeTicketCount} | Selected now: {selectedSeats.length} | Limit: {MAX_ACTIVE_TICKETS}</p>
             </div>
           </div>
 
-          {selectedSeat ? (
+          {selectedSeats.length ? (
             <div className="ticket-card">
               <div className="ticket-topline">
                 <div className="ticket-meta">
-                  <span className="status-badge good">Selected</span>
-                  <span className="ticket-id">{selectedSeat.seatId}</span>
+                  <span className="status-badge good">{selectedSeats.length} Selected</span>
+                  <span className="ticket-id">{selectedSeats.map((seat) => seat.seatId).join(", ")}</span>
                 </div>
-                <span className="status-badge">{selectedSeat.stand}</span>
+                <span className="status-badge">Multi-seat</span>
               </div>
 
               <div className="ticket-details">
                 <div className="detail">
-                  <span className="detail-label">Stand</span>
-                  <span className="detail-value">{selectedSeat.stand}</span>
+                  <span className="detail-label">Seats</span>
+                  <span className="detail-value">{selectedSeats.map((seat) => seat.seatId).join(", ")}</span>
                 </div>
                 <div className="detail">
-                  <span className="detail-label">Row</span>
-                  <span className="detail-value">{selectedSeat.row}</span>
+                  <span className="detail-label">Stands</span>
+                  <span className="detail-value">{[...new Set(selectedSeats.map((seat) => seat.stand))].join(", ")}</span>
                 </div>
                 <div className="detail">
-                  <span className="detail-label">Seat</span>
-                  <span className="detail-value">{selectedSeat.seatId}</span>
+                  <span className="detail-label">Rows</span>
+                  <span className="detail-value">{[...new Set(selectedSeats.map((seat) => seat.row))].join(", ")}</span>
                 </div>
                 <div className="detail">
-                  <span className="detail-label">Price</span>
-                  <span className="detail-value">Rs. {selectedSeat.price}</span>
+                  <span className="detail-label">Total price</span>
+                  <span className="detail-value">Rs. {totalSelectedPrice}</span>
                 </div>
               </div>
 
@@ -165,13 +211,13 @@ function EventSeatMap() {
                 <button type="button" className="btn btn-primary" onClick={handleBook}>
                   Book Now
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={() => setSelectedSeat(null)}>
-                  Clear
+                <button type="button" className="btn btn-secondary" onClick={() => setSelectedSeats([])}>
+                  Clear All
                 </button>
               </div>
             </div>
           ) : (
-            <div className="empty-state">Select a seat to unlock the booking summary.</div>
+            <div className="empty-state">Select one or more seats to unlock the booking summary.</div>
           )}
         </div>
 
