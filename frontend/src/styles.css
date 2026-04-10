@@ -211,6 +211,19 @@ button {
   gap: 16px;
 }
 
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .form-grid {
   display: grid;
   gap: 14px;
@@ -339,6 +352,7 @@ button {
   gap: 12px;
   font-weight: 800;
   letter-spacing: -0.03em;
+  cursor: pointer;
 }
 
 .brand-mark {
@@ -685,7 +699,9 @@ button {
 @media (max-width: 980px) {
   .page-grid,
   .layout-split,
-  .login-card {
+  .login-card,
+  .home-grid,
+  .home-cards {
     grid-template-columns: 1fr;
   }
 

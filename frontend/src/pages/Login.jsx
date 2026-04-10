@@ -27,7 +27,7 @@ function Login() {
       localStorage.setItem("blockseat_wallet", data.walletAddress);
       setBstId(data.bstId);
       setMessage("Login successful");
-      setTimeout(() => navigate("/events/Match-001"), 900);
+      setTimeout(() => navigate("/"), 900);
     } catch (error) {
       setMessage(error.response?.data?.message || "OTP verification failed");
     }
@@ -52,7 +52,7 @@ function Login() {
             </div>
             <div className="stats-row">
               <div className="stat">
-                <span className="stat-value">70s</span>
+                <span className="stat-value">30s</span>
                 <span className="stat-label">QR refresh window</span>
               </div>
               <div className="stat">

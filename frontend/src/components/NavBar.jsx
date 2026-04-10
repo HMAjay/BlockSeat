@@ -8,6 +8,10 @@ function Navbar() {
   // Hide navbar on login page
   if (location.pathname === "/login") return null;
 
+  const handleBrandClick = () => {
+    navigate("/");
+  };
+
   const handleSignOut = () => {
     localStorage.removeItem("blockseat_token");
     localStorage.removeItem("blockseat_bstId");
@@ -24,7 +28,8 @@ function Navbar() {
         <button
           type="button"
           className="brand btn-ghost"
-          onClick={() => navigate("/my-tickets")}
+          onClick={handleBrandClick}
+          title="Go to home"
         >
           <span className="brand-mark">B</span>
           <span className="brand-copy">
