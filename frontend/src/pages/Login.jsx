@@ -115,7 +115,7 @@ function Login() {
             </div>
             <div className="stats-row">
               <div className="stat">
-                <span className="stat-value">70s</span>
+                <span className="stat-value">30s</span>
                 <span className="stat-label">QR refresh window</span>
               </div>
               <div className="stat">

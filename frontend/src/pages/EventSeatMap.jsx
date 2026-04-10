@@ -212,7 +212,7 @@ function EventSeatMap() {
   const remainingSlots = Math.max(0, MAX_ACTIVE_TICKETS - activeTicketCount);
 
   return (
-    <div className="page-grid">
+    <div className="app-main" style={{ paddingBottom: '160px' }}>
       <section className="hero-card">
         <span className="eyebrow">Live booking</span>
         <h1 className="title">{eventData.name}</h1>
@@ -238,8 +238,8 @@ function EventSeatMap() {
         <div className="section" style={{ marginTop: 22, padding: 0, background: "transparent", boxShadow: "none", border: 0 }}>
           <div className="section-header">
             <div>
-              <h2 className="section-title">Choose your seat</h2>
-              <p className="section-copy">Gold seats are open, red are sold, grey are resale seats. Max 4 active tickets. Remaining slots: {remainingSlots}.</p>
+              <h2 className="section-title">Select Seats</h2>
+              <p className="section-copy">Gold = Available | Red = Sold | Grey = Resale. Select up to {remainingSlots} more seat{remainingSlots !== 1 ? 's' : ''} (total limit: {MAX_ACTIVE_TICKETS}).</p>
             </div>
           </div>
           <div className="grid-shell">
@@ -257,110 +257,59 @@ function EventSeatMap() {
             </div>
           </div>
         </div>
+
+        {message && (
+          <div className={`alert ${message.toLowerCase().includes("failed") || message.toLowerCase().includes("unable") ? "error" : ""}`} style={{ marginTop: 16 }}>
+            {message}
+          </div>
+        )}
       </section>
 
-      <aside className="stack">
-        <div className="section">
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Booking summary</h2>
-              <p className="section-copy">Wallet active: {activeTicketCount} | Selected now: {selectedSeats.length} | Limit: {MAX_ACTIVE_TICKETS}</p>
-            </div>
-          </div>
-
+      {(selectedSeats.length > 0 || selectedListing) && (
+        <div className="booking-panel">
           {selectedListing ? (
-            <div className="ticket-card">
-              <div className="ticket-topline">
-                <div className="ticket-meta">
-                  <span className="status-badge">Resale seat</span>
-                  <span className="ticket-id">{selectedListing.seat}</span>
+            <>
+              <div className="booking-panel-info">
+                <div className="booking-panel-thumbnail">
+                  <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHwIlMJ0HM_ocOfwn0upiAZcQXNDMDs-OrOs_ekIWJgdr_nzSWI4513JIS7Mriymv7TLg6s1-m0LcBKBhsottF_YPbMoymF4GlY5pET0oH9l07nukdA7rAkcwEgyMZ4yoCBmfzjn9egTjd7gxo0bZoe4eiFY6jj63AytRG8eFuL7HoCbCHy_p6nGoYSjFP_s6C3aLf4Qw271r0jd7TOWtWg11RN4N5ifJyaKKzvG2HsWXKKHy13L0oDMA8XuhMU1z4sJpVgqj9AXc" alt="venue" />
                 </div>
-                <span className="status-badge">Token #{selectedListing.tokenId}</span>
-              </div>
-
-              <div className="ticket-details">
-                <div className="detail">
-                  <span className="detail-label">Seat</span>
-                  <span className="detail-value">{selectedListing.seat}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Stand</span>
-                  <span className="detail-value">{selectedListing.stand}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Row</span>
-                  <span className="detail-value">{selectedListing.row}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Price</span>
-                  <span className="detail-value">Rs. {selectedListing.resalePrice}</span>
+                <div className="booking-panel-meta">
+                  <span className="booking-panel-seat">{selectedListing.row}: {selectedListing.seat}</span>
+                  <span className="booking-panel-tier">Resale Opportunity</span>
                 </div>
               </div>
-
-              <div className="btn-row" style={{ marginTop: 16 }}>
-                <button type="button" className="btn btn-primary" onClick={handleBuyListedSeat}>
-                  Buy Listed Seat
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={() => setSelectedListing(null)}>
-                  Clear
-                </button>
+              <div className="booking-panel-divider"></div>
+              <div className="booking-panel-price">
+                <span className="booking-panel-amount">Rs. {selectedListing.resalePrice} <span>Total</span></span>
+                <span className="booking-panel-desc">Service fees included</span>
               </div>
-            </div>
-          ) : selectedSeats.length ? (
-            <div className="ticket-card">
-              <div className="ticket-topline">
-                <div className="ticket-meta">
-                  <span className="status-badge good">{selectedSeats.length} Selected</span>
-                  <span className="ticket-id">{selectedSeats.map((seat) => seat.seatId).join(", ")}</span>
+              <button type="button" className="booking-panel-button" onClick={handleBuyListedSeat}>
+                Confirm Purchase
+              </button>
+            </>
+          ) : selectedSeats.length > 0 ? (
+            <>
+              <div className="booking-panel-info">
+                <div className="booking-panel-thumbnail">
+                  <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHwIlMJ0HM_ocOfwn0upiAZcQXNDMDs-OrOs_ekIWJgdr_nzSWI4513JIS7Mriymv7TLg6s1-m0LcBKBhsottF_YPbMoymF4GlY5pET0oH9l07nukdA7rAkcwEgyMZ4yoCBmfzjn9egTjd7gxo0bZoe4eiFY6jj63AytRG8eFuL7HoCbCHy_p6nGoYSjFP_s6C3aLf4Qw271r0jd7TOWtWg11RN4N5ifJyaKKzvG2HsWXKKHy13L0oDMA8XuhMU1z4sJpVgqj9AXc" alt="venue" />
                 </div>
-                <span className="status-badge">Multi-seat</span>
-              </div>
-
-              <div className="ticket-details">
-                <div className="detail">
-                  <span className="detail-label">Seats</span>
-                  <span className="detail-value">{selectedSeats.map((seat) => seat.seatId).join(", ")}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Stands</span>
-                  <span className="detail-value">{[...new Set(selectedSeats.map((seat) => seat.stand))].join(", ")}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Rows</span>
-                  <span className="detail-value">{[...new Set(selectedSeats.map((seat) => seat.row))].join(", ")}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Total price</span>
-                  <span className="detail-value">Rs. {totalSelectedPrice}</span>
+                <div className="booking-panel-meta">
+                  <span className="booking-panel-seat">{selectedSeats.length} Seat{selectedSeats.length !== 1 ? 's' : ''}</span>
+                  <span className="booking-panel-tier">{eventData.name}</span>
                 </div>
               </div>
-
-              <div className="btn-row" style={{ marginTop: 16 }}>
-                <button type="button" className="btn btn-primary" onClick={handleBook}>
-                  Book Now
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={() => setSelectedSeats([])}>
-                  Clear All
-                </button>
+              <div className="booking-panel-divider"></div>
+              <div className="booking-panel-price">
+                <span className="booking-panel-amount">Rs. {totalSelectedPrice} <span>Total</span></span>
+                <span className="booking-panel-desc">Service fees included</span>
               </div>
-            </div>
-          ) : (
-            <div className="empty-state">Select gold seats to mint, or a grey seat to buy resale.</div>
-          )}
+              <button type="button" className="booking-panel-button" onClick={handleBook}>
+                Confirm Booking
+              </button>
+            </>
+          ) : null}
         </div>
-
-        <div className="section">
-          <h3 className="section-title" style={{ fontSize: 18 }}>Status</h3>
-          <p className="section-copy">We’ll show payment and minting updates here.</p>
-          {message ? (
-            <div className={`alert ${message.toLowerCase().includes("failed") || message.toLowerCase().includes("unable") ? "error" : ""}`}>
-              {message}
-            </div>
-          ) : (
-            <div className="empty-state">No action yet. Pick a seat and continue.</div>
-          )}
-        </div>
-      </aside>
+      )}
     </div>
   );
 }
