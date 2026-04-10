@@ -1,15 +1,17 @@
 // App configures routes and protects authenticated pages.
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import Login from "./pages/Login";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
+import AdminSchedule from "./pages/AdminSchedule";
+import EventsList from "./pages/EventsList";
 import EventSeatMap from "./pages/EventSeatMap";
 import MyTickets from "./pages/MyTickets";
 import QRDisplay from "./pages/QRDisplay";
 import TransferTicket from "./pages/TransferTicket";
 import GateScanner from "./pages/GateScanner";
 import VerifyTicket from "./pages/VerifyTicket";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/NavBar";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 function ProtectedRoute({ children }) {
@@ -27,19 +29,17 @@ function App() {
       <main className="app-main">
         <ErrorBoundary>
         <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={<AdminSchedule />} />
           <Route
-            path="/"
+            path="/events"
             element={
-              isAuthed ? (
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              ) : (
-                <Navigate to="/login" replace />
-              )
+              <ProtectedRoute>
+                <EventsList />
+              </ProtectedRoute>
             }
           />
-          <Route path="/login" element={<Login />} />
           <Route
             path="/events/:id"
             element={

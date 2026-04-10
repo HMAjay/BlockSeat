@@ -20,7 +20,9 @@ const loadRazorpay = () =>
 function EventSeatMap() {
   const { id } = useParams();
   const [eventData, setEventData] = useState(null);
+  const [marketListings, setMarketListings] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [selectedListing, setSelectedListing] = useState(null);
   const [activeTicketCount, setActiveTicketCount] = useState(0);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
@@ -28,8 +30,12 @@ function EventSeatMap() {
   useEffect(() => {
     const fetchSeats = async () => {
       try {
-        const { data } = await api.get(`/events/${id}/seats`);
-        setEventData(data);
+        const [eventResp, listingResp] = await Promise.all([
+          api.get(`/events/${id}/seats`),
+          api.get(`/market/listings/event/${id}`)
+        ]);
+        setEventData(eventResp.data);
+        setMarketListings(listingResp.data || []);
       } catch (error) {
         setMessage(error.response?.data?.message || "Failed to load seat map");
       }
@@ -51,6 +57,20 @@ function EventSeatMap() {
   }, []);
 
   const toggleSeatSelection = (seat) => {
+    if (seat.isMarketListed) {
+      setSelectedSeats([]);
+      setSelectedListing((prev) => (prev?._id === seat.listingId ? null : {
+        _id: seat.listingId,
+        tokenId: seat.listingTokenId,
+        seat: seat.seatId,
+        stand: seat.stand,
+        row: seat.row,
+        resalePrice: seat.listingPrice,
+      }));
+      return;
+    }
+
+    if (selectedListing) setSelectedListing(null);
     setSelectedSeats((prev) => {
       const exists = prev.some((item) => item.seatId === seat.seatId);
       if (exists) {
@@ -63,6 +83,53 @@ function EventSeatMap() {
       }
       return [...prev, seat];
     });
+  };
+
+  const handleBuyListedSeat = async () => {
+    try {
+      if (!selectedListing) return setMessage("Select a listed grey seat first");
+      if (activeTicketCount + 1 > MAX_ACTIVE_TICKETS) {
+        return setMessage(`Booking blocked: wallet + selected seats cannot exceed ${MAX_ACTIVE_TICKETS} active tickets.`);
+      }
+
+      setMessage("Joining checkout waiting room...");
+      const queuePass = await acquireCheckoutQueuePass({ onStatus: setMessage });
+      const loaded = await loadRazorpay();
+      if (!loaded) return setMessage("Unable to load Razorpay SDK");
+
+      const orderResp = await api.post(
+        `/market/listing/${selectedListing._id}/create-order`,
+        {},
+        { headers: { "X-BlockSeat-Queue-Pass": queuePass } }
+      );
+      const order = orderResp.data.order;
+
+      const options = {
+        key: orderResp.data.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "BlockSeat",
+        description: `Buy listed seat ${selectedListing.seat}`,
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            await api.post(`/market/listing/${selectedListing._id}/complete`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            setMessage(`Purchased listed seat ${selectedListing.seat}`);
+            setTimeout(() => navigate("/my-tickets"), 1000);
+          } catch (error) {
+            setMessage(error.response?.data?.message || "Market purchase failed after payment");
+          }
+        }
+      };
+      const rz = new window.Razorpay(options);
+      rz.open();
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Unable to buy listed seat");
+    }
   };
 
   const handleBook = async () => {
@@ -127,12 +194,25 @@ function EventSeatMap() {
     return <div className="empty-state">{message || "Loading event seats..."}</div>;
   }
 
-  const availableCount = eventData.seats.filter((seat) => !seat.isTaken).length;
+  const listingBySeat = new Map(marketListings.map((listing) => [listing.seat, listing]));
+  const seatsWithListings = eventData.seats.map((seat) => {
+    const listing = listingBySeat.get(seat.seatId);
+    if (!listing) return seat;
+    return {
+      ...seat,
+      isMarketListed: true,
+      listingId: listing._id,
+      listingTokenId: listing.tokenId,
+      listingPrice: listing.resalePrice,
+    };
+  });
+
+  const availableCount = seatsWithListings.filter((seat) => !seat.isTaken || seat.isMarketListed).length;
   const totalSelectedPrice = selectedSeats.reduce((sum, seat) => sum + Number(seat.price), 0);
   const remainingSlots = Math.max(0, MAX_ACTIVE_TICKETS - activeTicketCount);
 
   return (
-    <div className="page-grid">
+    <div className="app-main" style={{ paddingBottom: '160px' }}>
       <section className="hero-card">
         <span className="eyebrow">Live booking</span>
         <h1 className="title">{eventData.name}</h1>
@@ -158,89 +238,78 @@ function EventSeatMap() {
         <div className="section" style={{ marginTop: 22, padding: 0, background: "transparent", boxShadow: "none", border: 0 }}>
           <div className="section-header">
             <div>
-              <h2 className="section-title">Choose your seat</h2>
-              <p className="section-copy">Green seats are open, red seats are already claimed. Max 4 active tickets in wallet. Remaining slots: {remainingSlots}.</p>
+              <h2 className="section-title">Select Seats</h2>
+              <p className="section-copy">Gold = Available | Red = Sold | Grey = Resale. Select up to {remainingSlots} more seat{remainingSlots !== 1 ? 's' : ''} (total limit: {MAX_ACTIVE_TICKETS}).</p>
             </div>
           </div>
           <div className="grid-shell">
             <SeatGrid
-              seats={eventData.seats}
+              seats={seatsWithListings}
               selectedSeatIds={selectedSeats.map((seat) => seat.seatId)}
+              selectedSeatId={selectedListing?.seat}
               onSeatClick={toggleSeatSelection}
             />
             <div className="legend">
               <span className="legend-item"><span className="dot good" /> Available</span>
               <span className="legend-item"><span className="dot bad" /> Taken</span>
+              <span className="legend-item"><span className="dot neutral" /> Resale</span>
               <span className="legend-item"><span className="dot warn" /> Selected</span>
             </div>
           </div>
         </div>
+
+        {message && (
+          <div className={`alert ${message.toLowerCase().includes("failed") || message.toLowerCase().includes("unable") ? "error" : ""}`} style={{ marginTop: 16 }}>
+            {message}
+          </div>
+        )}
       </section>
 
-      <aside className="stack">
-        <div className="section">
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Booking summary</h2>
-              <p className="section-copy">Wallet active: {activeTicketCount} | Selected now: {selectedSeats.length} | Limit: {MAX_ACTIVE_TICKETS}</p>
-            </div>
-          </div>
-
-          {selectedSeats.length ? (
-            <div className="ticket-card">
-              <div className="ticket-topline">
-                <div className="ticket-meta">
-                  <span className="status-badge good">{selectedSeats.length} Selected</span>
-                  <span className="ticket-id">{selectedSeats.map((seat) => seat.seatId).join(", ")}</span>
+      {(selectedSeats.length > 0 || selectedListing) && (
+        <div className="booking-panel">
+          {selectedListing ? (
+            <>
+              <div className="booking-panel-info">
+                <div className="booking-panel-thumbnail">
+                  <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHwIlMJ0HM_ocOfwn0upiAZcQXNDMDs-OrOs_ekIWJgdr_nzSWI4513JIS7Mriymv7TLg6s1-m0LcBKBhsottF_YPbMoymF4GlY5pET0oH9l07nukdA7rAkcwEgyMZ4yoCBmfzjn9egTjd7gxo0bZoe4eiFY6jj63AytRG8eFuL7HoCbCHy_p6nGoYSjFP_s6C3aLf4Qw271r0jd7TOWtWg11RN4N5ifJyaKKzvG2HsWXKKHy13L0oDMA8XuhMU1z4sJpVgqj9AXc" alt="venue" />
                 </div>
-                <span className="status-badge">Multi-seat</span>
-              </div>
-
-              <div className="ticket-details">
-                <div className="detail">
-                  <span className="detail-label">Seats</span>
-                  <span className="detail-value">{selectedSeats.map((seat) => seat.seatId).join(", ")}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Stands</span>
-                  <span className="detail-value">{[...new Set(selectedSeats.map((seat) => seat.stand))].join(", ")}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Rows</span>
-                  <span className="detail-value">{[...new Set(selectedSeats.map((seat) => seat.row))].join(", ")}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Total price</span>
-                  <span className="detail-value">Rs. {totalSelectedPrice}</span>
+                <div className="booking-panel-meta">
+                  <span className="booking-panel-seat">{selectedListing.row}: {selectedListing.seat}</span>
+                  <span className="booking-panel-tier">Resale Opportunity</span>
                 </div>
               </div>
-
-              <div className="btn-row" style={{ marginTop: 16 }}>
-                <button type="button" className="btn btn-primary" onClick={handleBook}>
-                  Book Now
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={() => setSelectedSeats([])}>
-                  Clear All
-                </button>
+              <div className="booking-panel-divider"></div>
+              <div className="booking-panel-price">
+                <span className="booking-panel-amount">Rs. {selectedListing.resalePrice} <span>Total</span></span>
+                <span className="booking-panel-desc">Service fees included</span>
               </div>
-            </div>
-          ) : (
-            <div className="empty-state">Select one or more seats to unlock the booking summary.</div>
-          )}
+              <button type="button" className="booking-panel-button" onClick={handleBuyListedSeat}>
+                Confirm Purchase
+              </button>
+            </>
+          ) : selectedSeats.length > 0 ? (
+            <>
+              <div className="booking-panel-info">
+                <div className="booking-panel-thumbnail">
+                  <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHwIlMJ0HM_ocOfwn0upiAZcQXNDMDs-OrOs_ekIWJgdr_nzSWI4513JIS7Mriymv7TLg6s1-m0LcBKBhsottF_YPbMoymF4GlY5pET0oH9l07nukdA7rAkcwEgyMZ4yoCBmfzjn9egTjd7gxo0bZoe4eiFY6jj63AytRG8eFuL7HoCbCHy_p6nGoYSjFP_s6C3aLf4Qw271r0jd7TOWtWg11RN4N5ifJyaKKzvG2HsWXKKHy13L0oDMA8XuhMU1z4sJpVgqj9AXc" alt="venue" />
+                </div>
+                <div className="booking-panel-meta">
+                  <span className="booking-panel-seat">{selectedSeats.length} Seat{selectedSeats.length !== 1 ? 's' : ''}</span>
+                  <span className="booking-panel-tier">{eventData.name}</span>
+                </div>
+              </div>
+              <div className="booking-panel-divider"></div>
+              <div className="booking-panel-price">
+                <span className="booking-panel-amount">Rs. {totalSelectedPrice} <span>Total</span></span>
+                <span className="booking-panel-desc">Service fees included</span>
+              </div>
+              <button type="button" className="booking-panel-button" onClick={handleBook}>
+                Confirm Booking
+              </button>
+            </>
+          ) : null}
         </div>
-
-        <div className="section">
-          <h3 className="section-title" style={{ fontSize: 18 }}>Status</h3>
-          <p className="section-copy">We’ll show payment and minting updates here.</p>
-          {message ? (
-            <div className={`alert ${message.toLowerCase().includes("failed") || message.toLowerCase().includes("unable") ? "error" : ""}`}>
-              {message}
-            </div>
-          ) : (
-            <div className="empty-state">No action yet. Pick a seat and continue.</div>
-          )}
-        </div>
-      </aside>
+      )}
     </div>
   );
 }

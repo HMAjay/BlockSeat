@@ -105,16 +105,13 @@ function Login() {
     <div className="login-wrap">
       <div className="login-card">
         <aside className="login-aside">
-          <span className="eyebrow">Secure access</span>
+          <span className="eyebrow">Login</span>
           <div className="login-copy">
-            <h1 className="title" style={{ marginBottom: 0 }}>Enter the seat, not the scalper market.</h1>
-            <p className="subtitle">
-              BlockSeat keeps tickets tied to ownership, QR timing, and resale rules so the live event experience stays clean and verified.
-            </p>
+            <h1 className="title" style={{ marginBottom: 0 }}>Access your tickets.</h1>
+            <p className="subtitle">Phone number + OTP.</p>
             <div className="helper-row">
-              <span className="helper-chip">OTP login</span>
-              <span className="helper-chip">On-chain NFT tickets</span>
-              <span className="helper-chip">Dynamic QR access</span>
+              <span className="helper-chip">Fast OTP</span>
+              <span className="helper-chip">Secure access</span>
             </div>
             <div className="stats-row">
               <div className="stat">
@@ -136,7 +133,7 @@ function Login() {
         <section className="login-form">
           <div>
             <h2 className="form-title">Sign in to BlockSeat</h2>
-            <p className="form-subtitle">Use your phone number to receive a one-time password and unlock your wallet-backed account.</p>
+            <p className="form-subtitle">Enter phone, complete CAPTCHA, verify OTP.</p>
           </div>
 
           <div className="form-grid">
@@ -176,7 +173,7 @@ function Login() {
             </div>
           )}
           {message && <div className={`alert ${isError ? "error" : ""}`}>{message}</div>}
-          <p className="hint">Tip: check the backend console for the mock OTP during local testing.</p>
+          <p className="hint">Local mode: OTP appears in backend console.</p>
         </section>
       </div>
     </div>

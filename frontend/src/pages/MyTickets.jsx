@@ -14,7 +14,7 @@ const loadRazorpay = () =>
     document.body.appendChild(script);
   });
 
-function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify, transferLocked }) {
+function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify, onCantAttend, transferLocked, listedPrice }) {
   return (
     <article className="ticket-card">
       <div className="ticket-topline">
@@ -63,6 +63,9 @@ function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify, transferLock
           >
             Verify Ticket
           </button>
+          <button type="button" className="btn btn-secondary" onClick={() => onCantAttend(ticket)}>
+            {listedPrice ? `Update Can't Attend (Rs. ${listedPrice})` : "Can't Attend"}
+          </button>
         </div>
       ) : (
         <p className="hint">This ticket has already been scanned at the gate.</p>
@@ -75,6 +78,7 @@ function MyTickets() {
   const [tickets, setTickets] = useState([]);
   const [requests, setRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
+  const [marketListings, setMarketListings] = useState([]);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
@@ -118,11 +122,52 @@ function MyTickets() {
     fetchSentRequests();
   }, []);
 
+  useEffect(() => {
+    const fetchMarketListings = async () => {
+      try {
+        const { data } = await api.get("/market/listings/my");
+        setMarketListings(data);
+      } catch (error) {
+        if (!message) {
+          setMessage(error.response?.data?.message || "Failed to fetch market listings");
+        }
+      }
+    };
+    fetchMarketListings();
+  }, []);
+
   const active = tickets.filter((t) => !t.isUsed);
   const used = tickets.filter((t) => t.isUsed);
   const pendingTransferIds = new Set(
     sentRequests.filter((request) => request.status === "pending").map((request) => String(request.tokenId))
   );
+  const listingByTokenId = new Map(marketListings.map((listing) => [String(listing.tokenId), listing]));
+
+  const listTicketForMarket = async (ticket) => {
+    try {
+      const existing = listingByTokenId.get(String(ticket.tokenId));
+      const input = window.prompt(
+        `Set resale price for seat ${ticket.seat} (max Rs. ${ticket.maxResalePrice})`,
+        String(existing?.resalePrice || ticket.faceValue)
+      );
+      if (input === null) return;
+      const price = Number(input);
+      if (!Number.isFinite(price) || price <= 0) {
+        return setMessage("Enter a valid resale price");
+      }
+
+      await api.post("/market/listings", {
+        tokenId: Number(ticket.tokenId),
+        resalePrice: price,
+      });
+
+      const { data } = await api.get("/market/listings/my");
+      setMarketListings(data);
+      setMessage(`Seat ${ticket.seat} is now listed on market`);
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Failed to list seat");
+    }
+  };
 
   const completeTransfer = async (request) => {
     try {
@@ -226,7 +271,9 @@ function MyTickets() {
                 onViewQr={() => navigate(`/qr/${ticket.tokenId}`)}
                 onTransfer={() => navigate(`/transfer/${ticket.tokenId}`)}
                 onVerify={() => navigate(`/verify/${ticket.tokenId}`)}
+                onCantAttend={() => listTicketForMarket(ticket)}
                 transferLocked={pendingTransferIds.has(String(ticket.tokenId))}
+                listedPrice={listingByTokenId.get(String(ticket.tokenId))?.resalePrice}
               />
             )) : <div className="empty-state">No active tickets yet. Book one from the event seat map.</div>}
           </div>

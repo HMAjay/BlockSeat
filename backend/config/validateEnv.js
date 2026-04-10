@@ -12,6 +12,9 @@ const validateEnv = () => {
   ];
 
   const optional = [
+    { key: "ADMIN_USER", check: (v) => v.trim().length > 0, hint: "should not be empty if set" },
+    { key: "ADMIN_PASSWORD", check: (v) => v.length >= 6, hint: "should be at least 6 characters if set" },
+    { key: "ADMIN_JWT_SECRET", check: (v) => v.length >= 16, hint: "should be at least 16 characters if set" },
     { key: "QUEUE_PASS_SECRET", check: (v) => v.length >= 16, hint: "should be at least 16 characters if set" },
     { key: "REDIS_URL", check: (v) => v.startsWith("redis://") || v.startsWith("rediss://"), hint: "should be a Redis URL if set" },
     { key: "CAPTCHA_ENABLED", check: (v) => ["true", "false"].includes(v), hint: "should be true or false if set" },
