@@ -2,6 +2,7 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import EventSeatMap from "./pages/EventSeatMap";
 import MyTickets from "./pages/MyTickets";
 import QRDisplay from "./pages/QRDisplay";
@@ -26,7 +27,18 @@ function App() {
       <main className="app-main">
         <ErrorBoundary>
         <Routes>
-          <Route path="/" element={<Navigate to={isAuthed ? "/my-tickets" : "/login"} replace />} />
+          <Route
+            path="/"
+            element={
+              isAuthed ? (
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
           <Route path="/login" element={<Login />} />
           <Route
             path="/events/:id"
@@ -76,7 +88,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to={isAuthed ? "/my-tickets" : "/login"} replace />} />
+          <Route path="*" element={<Navigate to={isAuthed ? "/" : "/login"} replace />} />
         </Routes>
         </ErrorBoundary>
       </main>
