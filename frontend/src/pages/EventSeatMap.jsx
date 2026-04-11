@@ -239,7 +239,7 @@ function EventSeatMap() {
           <div className="section-header">
             <div>
               <h2 className="section-title">Select Seats</h2>
-              <p className="section-copy">Gold = Available | Red = Sold | Grey = Resale. Select up to {remainingSlots} more seat{remainingSlots !== 1 ? 's' : ''} (total limit: {MAX_ACTIVE_TICKETS}).</p>
+              <p className="section-copy">Green = Available | Red = Taken | Yellow = Resale. Select up to {remainingSlots} more seat{remainingSlots !== 1 ? 's' : ''} (total limit: {MAX_ACTIVE_TICKETS}).</p>
             </div>
           </div>
           <div className="grid-shell">
@@ -253,7 +253,6 @@ function EventSeatMap() {
               <span className="legend-item"><span className="dot good" /> Available</span>
               <span className="legend-item"><span className="dot bad" /> Taken</span>
               <span className="legend-item"><span className="dot neutral" /> Resale</span>
-              <span className="legend-item"><span className="dot warn" /> Selected</span>
             </div>
           </div>
         </div>

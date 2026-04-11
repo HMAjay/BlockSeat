@@ -701,41 +701,42 @@ button {
 }
 
 .seat:disabled {
-  cursor: not-allowed;
+  cursor: no-drop;
   opacity: 0.55;
-  pointer-events: none;
 }
 
 .seat.available {
-  background: linear-gradient(135deg, #f2be6a 0%, #d1ab3e 100%);
-  border-color: #f2be6a;
+  background: linear-gradient(135deg, #51d38a 0%, #1fa463 100%);
+  border-color: #51d38a;
 }
 
 .seat.available:hover:not(:disabled) {
+  background: linear-gradient(135deg, #63e39a 0%, #29b06f 100%);
+  box-shadow: 0 4px 12px rgba(81, 211, 138, 0.4);
+}
+
+.seat.taken {
+  background: linear-gradient(135deg, #e82305 0%, #ec1c24 100%);
+  border-color: #ec1c24;
+  opacity: 0.6;
+  cursor: no-drop;
+}
+
+.seat.listed {
+  background: linear-gradient(135deg, #f2be6a 0%, #d1ab3e 100%);
+  border-color: #f2be6a;
+  color: #1b1310;
+}
+
+.seat.listed:hover:not(:disabled) {
   background: linear-gradient(135deg, #f5ca7a 0%, #d9b34e 100%);
   box-shadow: 0 4px 12px rgba(242, 190, 106, 0.4);
 }
 
-.seat.taken {
-  background: linear-gradient(135deg, #ffb4a8 0%, #ec1c24 100%);
-  border-color: #ec1c24;
-  opacity: 0.6;
-}
-
-.seat.listed {
-  background: linear-gradient(135deg, #d7c2be 0%, #a8989f 100%);
-  border-color: #8e9498;
-}
-
-.seat.listed:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e0ccc8 0%, #b2a2a9 100%);
-  box-shadow: 0 4px 12px rgba(139, 149, 152, 0.4);
-}
-
 .seat.selected {
-  background: linear-gradient(135deg, #f9d084 0%, #e0c541 100%);
-  border-color: #f2be6a;
-  box-shadow: 0 0 20px rgba(242, 190, 106, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.92),
+    0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .legend {
@@ -760,11 +761,11 @@ button {
 }
 
 .dot.good {
-  background: var(--good);
+  background: #40d48f;
 }
 
 .dot.bad {
-  background: var(--bad);
+  background: #ec1c24;
 }
 
 .dot.warn {
@@ -772,7 +773,7 @@ button {
 }
 
 .dot.neutral {
-  background: #8e9498;
+  background: #f2be6a;
 }
 
 .qr-shell {
