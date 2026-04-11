@@ -16,12 +16,12 @@ function Navbar() {
 
   const token = localStorage.getItem("blockseat_token");
   const bstId = localStorage.getItem("blockseat_bstId");
-  const isAuthed = Boolean(token);
+  const isAuthed = Boolean(localStorage.getItem("blockseat_token"));
 
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        <button type="button" className="brand btn-ghost" onClick={() => navigate(isAuthed ? "/my-tickets" : "/")}>
+        <button type="button" className="brand btn-ghost" onClick={() => navigate("/")}>
           <span className="brand-mark">B</span>
           <span className="brand-copy">
             <span className="brand-name">BlockSeat</span>
@@ -41,18 +41,18 @@ function Navbar() {
           <button type="button" className="btn btn-secondary" onClick={() => navigate("/events")}>
             Browse Events
           </button>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate("/admin")}>
-            Admin
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/verify-owner")}>
+            Verify Owner
           </button>
+          {isAuthed && (
+            <button type="button" className="btn btn-secondary" onClick={() => navigate("/admin")}>
+              Admin
+            </button>
+          )}
           {isAuthed ? (
-            <>
-              <button type="button" className="btn btn-secondary" onClick={() => navigate("/my-tickets")}>
-                My Tickets
-              </button>
-              <button type="button" className="btn btn-primary" onClick={handleSignOut}>
-                Sign Out
-              </button>
-            </>
+            <button type="button" className="btn btn-primary" onClick={handleSignOut}>
+              Sign Out
+            </button>
           ) : (
             <button type="button" className="btn btn-primary" onClick={() => navigate("/login")}>
               Sign In

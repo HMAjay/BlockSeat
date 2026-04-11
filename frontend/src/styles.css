@@ -262,8 +262,16 @@ button {
 .input:focus,
 .select:focus,
 .textarea:focus {
-  border-color: rgba(242, 190, 106, 0.6);
-  box-shadow: 0 0 0 4px rgba(242, 190, 106, 0.15);
+  border-color: rgba(143, 211, 255, 0.55);
+  box-shadow: 0 0 0 4px rgba(84, 183, 255, 0.15);
+}
+
+.input:read-only,
+.select:disabled,
+.textarea:read-only {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 .btn-row {
