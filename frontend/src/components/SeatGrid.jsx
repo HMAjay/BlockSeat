@@ -10,7 +10,8 @@ function SeatGrid({ seats, selectedSeatId, selectedSeatIds = [], onSeatClick }) 
         const isSelected = selectedSet.has(seat.seatId) || seat.seatId === selectedSeatId;
         const isListed = Boolean(seat.isMarketListed);
         const isDisabled = seat.isTaken && !isListed;
-        const seatClass = isListed ? "listed" : seat.isTaken ? "taken" : "available";
+        const isYellow = seat.seatType === "yellow";
+        const seatClass = isListed ? "listed" : seat.isTaken ? "taken" : isYellow ? "yellow" : "available";
         return (
           <button
             key={seat.seatId}
@@ -18,7 +19,7 @@ function SeatGrid({ seats, selectedSeatId, selectedSeatIds = [], onSeatClick }) 
             onClick={() => onSeatClick(seat)}
             disabled={isDisabled}
             className={`seat ${seatClass} ${isSelected ? "selected" : ""}`}
-            title={`${seat.row}${seat.seatId} - ${isListed ? "Listed" : seat.isTaken ? "Taken" : "Available"}`}
+            title={`${seat.row}${seat.seatId} - ${isListed ? "Listed" : seat.isTaken ? "Taken" : isYellow ? "Yellow (No resale)" : "Available"}`}
           >
             {seat.seatId}
           </button>

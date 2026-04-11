@@ -139,6 +139,12 @@ router.post("/mint", auth, validate(mintSchema), async (req, res) => {
 
     logger.info(`Ticket minted: tokenId=${tokenId} seat=${seat} owner=${buyer.bstId} tx=${tx.hash}`);
     const maxResalePrice = Math.floor(Number(faceValue) * 1.1);
+    
+    // Get seat details to check if it's a yellow seat (no resale allowed)
+    const event = await Event.findOne({ eventId });
+    const seatDetails = event?.seats.find(s => s.seatId === seat);
+    const canResale = seatDetails?.seatType !== "yellow";
+    
     const ticket = await Ticket.create({
       tokenId: Number(tokenId),
       eventId,
@@ -151,6 +157,7 @@ router.post("/mint", auth, validate(mintSchema), async (req, res) => {
       transferCount: 0,
       qrSecret: createQrSecret(),
       txHash: tx.hash,
+      canResale,
     });
 
     return res.json({ message: "Ticket minted", txHash: tx.hash, ticket });

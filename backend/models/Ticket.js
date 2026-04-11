@@ -17,7 +17,8 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       required: true,
       index: true
-    }
+    },
+    canResale: { type: Boolean, default: true }
   },
   { timestamps: true }
 );

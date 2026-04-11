@@ -25,6 +25,7 @@ function EventSeatMap() {
   const [selectedListing, setSelectedListing] = useState(null);
   const [activeTicketCount, setActiveTicketCount] = useState(0);
   const [message, setMessage] = useState("");
+  const [yellowSeatWarning, setYellowSeatWarning] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -69,6 +70,32 @@ function EventSeatMap() {
       }));
       return;
     }
+
+    // Check if this is a yellow seat
+    if (seat.seatType === "yellow") {
+      setYellowSeatWarning(seat);
+      return;
+    }
+
+    if (selectedListing) setSelectedListing(null);
+    setSelectedSeats((prev) => {
+      const exists = prev.some((item) => item.seatId === seat.seatId);
+      if (exists) {
+        return prev.filter((item) => item.seatId !== seat.seatId);
+      }
+      const remainingLimit = Math.max(0, MAX_ACTIVE_TICKETS - activeTicketCount);
+      if (prev.length >= remainingLimit) {
+        setMessage(`You can hold at most ${MAX_ACTIVE_TICKETS} active tickets. Wallet has ${activeTicketCount}.`);
+        return prev;
+      }
+      return [...prev, seat];
+    });
+  };
+
+  const confirmYellowSeatSelection = () => {
+    if (!yellowSeatWarning) return;
+    const seat = yellowSeatWarning;
+    setYellowSeatWarning(null);
 
     if (selectedListing) setSelectedListing(null);
     setSelectedSeats((prev) => {
@@ -307,6 +334,28 @@ function EventSeatMap() {
               </button>
             </>
           ) : null}
+        </div>
+      )}
+
+      {yellowSeatWarning && (
+        <div className="modal-overlay" onClick={() => setYellowSeatWarning(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">⚠️ Yellow Seat Warning</h2>
+            <p className="modal-text">
+              You've selected seat <strong>{yellowSeatWarning.row}{yellowSeatWarning.seatId}</strong>, which is marked as a <strong>yellow seat (resale restricted)</strong>.
+            </p>
+            <p className="modal-text">
+              <strong>Important:</strong> Once you buy this ticket, you will <strong>NOT be able to resale or transfer it</strong> to another person. This is a one-time purchase for personal use only.
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="modal-button cancel" onClick={() => setYellowSeatWarning(null)}>
+                Cancel
+              </button>
+              <button type="button" className="modal-button confirm" onClick={confirmYellowSeatSelection}>
+                I Understand, Continue
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
