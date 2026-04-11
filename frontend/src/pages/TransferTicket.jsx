@@ -73,9 +73,15 @@ function TransferTicket() {
       <section className="hero-card">
         <span className="eyebrow">Resale transfer</span>
         <h1 className="title">Transfer ticket #{tokenId}</h1>
-        <p className="subtitle">
-          Resale stays capped, lookup confirms the buyer, and the transfer finalizes only after payment succeeds.
-        </p>
+        {ticket && !ticket.canResale ? (
+          <p className="subtitle" style={{ color: '#ff9800' }}>
+            ⚠️ This ticket is restricted from resale. It was purchased as a yellow seat and can only be used for personal entry.
+          </p>
+        ) : (
+          <p className="subtitle">
+            Resale stays capped, lookup confirms the buyer, and the transfer finalizes only after payment succeeds.
+          </p>
+        )}
 
         <div className="stats-row" style={{ marginTop: 18 }}>
           <div className="stat">
@@ -97,39 +103,46 @@ function TransferTicket() {
         <div className="section-header">
           <div>
             <h2 className="section-title">Transfer details</h2>
-            <p className="section-copy">Fill the recipient BST ID, verify the user, and confirm the price.</p>
+            <p className="section-copy">{ticket && !ticket.canResale ? "This ticket cannot be transferred." : "Fill the recipient BST ID, verify the user, and confirm the price."}</p>
           </div>
         </div>
 
-        <div className="form-grid">
-          <input
-            className="input"
-            value={recipientBstId}
-            onChange={(e) => setRecipientBstId(e.target.value)}
-            placeholder="Interested buyer BST ID"
-            disabled={Boolean(pendingRequest)}
-          />
-          <button type="button" className="btn btn-secondary" onClick={lookupUser}>
-            Lookup Buyer
-          </button>
-          {recipientName && (
-            <div className="alert success">
-              Recipient: <strong>{recipientName}</strong>
-            </div>
-          )}
+        {ticket && !ticket.canResale ? (
+          <div className="alert error" style={{ marginTop: 16 }}>
+            <strong>❌ Resale Not Allowed</strong>
+            <p>You purchased this ticket from a yellow seat, which means it cannot be resold or transferred to another person. This ticket is locked to your account and can only be used for your own entry to the event.</p>
+          </div>
+        ) : (
+          <div className="form-grid">
+            <input
+              className="input"
+              value={recipientBstId}
+              onChange={(e) => setRecipientBstId(e.target.value)}
+              placeholder="Interested buyer BST ID"
+              disabled={Boolean(pendingRequest)}
+            />
+            <button type="button" className="btn btn-secondary" onClick={lookupUser}>
+              Lookup Buyer
+            </button>
+            {recipientName && (
+              <div className="alert success">
+                Recipient: <strong>{recipientName}</strong>
+              </div>
+            )}
 
-          <input
-            className="input"
-            type="number"
-            value={resalePrice}
-            onChange={(e) => setResalePrice(e.target.value)}
-            placeholder="Resale price in INR"
-            disabled={Boolean(pendingRequest)}
-          />
-          <button type="button" className="btn btn-primary" onClick={payAndTransfer} disabled={Boolean(pendingRequest)}>
-            Send Transfer Request
-          </button>
-        </div>
+            <input
+              className="input"
+              type="number"
+              value={resalePrice}
+              onChange={(e) => setResalePrice(e.target.value)}
+              placeholder="Resale price in INR"
+              disabled={Boolean(pendingRequest)}
+            />
+            <button type="button" className="btn btn-primary" onClick={payAndTransfer} disabled={Boolean(pendingRequest)}>
+              Send Transfer Request
+            </button>
+          </div>
+        )}
 
         {pendingRequest && (
           <div className="alert">

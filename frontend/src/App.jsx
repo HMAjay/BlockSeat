@@ -11,6 +11,7 @@ import QRDisplay from "./pages/QRDisplay";
 import TransferTicket from "./pages/TransferTicket";
 import GateScanner from "./pages/GateScanner";
 import VerifyTicket from "./pages/VerifyTicket";
+import VerifyOwner from "./pages/VerifyOwner";
 import Navbar from "./components/NavBar";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -31,6 +32,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/verify-owner" element={<VerifyOwner />} />
           <Route path="/admin" element={<AdminSchedule />} />
           <Route
             path="/events"

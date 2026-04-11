@@ -29,6 +29,60 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+router.get("/public/:tokenId/owner", async (req, res) => {
+  try {
+    const tokenId = Number(req.params.tokenId);
+    if (!Number.isInteger(tokenId) || tokenId <= 0) {
+      return res.status(400).json({ message: "tokenId must be a positive integer" });
+    }
+
+    const ticket = await Ticket.findOne({ tokenId });
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    const onChainOwner = await contract.ownerOf(tokenId);
+    return res.json({
+      tokenId,
+      eventId: ticket.eventId,
+      seat: ticket.seat,
+      onChainOwner,
+      ownerWalletAddress: ticket.ownerWalletAddress,
+      ownerMatches: ticket.ownerWalletAddress.toLowerCase() === onChainOwner.toLowerCase()
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch on-chain owner", error: error.message });
+  }
+});
+
+router.get("/:tokenId/owner", auth, async (req, res) => {
+  try {
+    const tokenId = Number(req.params.tokenId);
+    if (!Number.isInteger(tokenId) || tokenId <= 0) {
+      return res.status(400).json({ message: "tokenId must be a positive integer" });
+    }
+
+    const ticket = await Ticket.findOne({ tokenId });
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    if (ticket.ownerBstId !== req.user.bstId) {
+      return res.status(403).json({ message: "Not ticket owner" });
+    }
+
+    const onChainOwner = await contract.ownerOf(tokenId);
+    return res.json({
+      tokenId,
+      onChainOwner,
+      ownerWalletAddress: ticket.ownerWalletAddress,
+      ownerMatches: ticket.ownerWalletAddress.toLowerCase() === onChainOwner.toLowerCase()
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch on-chain owner", error: error.message });
+  }
+});
+
 router.post("/mint", auth, validate(mintSchema), async (req, res) => {
   try {
     const { tokenId, eventId, seat, faceValue } = req.body;
@@ -85,6 +139,12 @@ router.post("/mint", auth, validate(mintSchema), async (req, res) => {
 
     logger.info(`Ticket minted: tokenId=${tokenId} seat=${seat} owner=${buyer.bstId} tx=${tx.hash}`);
     const maxResalePrice = Math.floor(Number(faceValue) * 1.1);
+    
+    // Get seat details to check if it's a yellow seat (no resale allowed)
+    const event = await Event.findOne({ eventId });
+    const seatDetails = event?.seats.find(s => s.seatId === seat);
+    const canResale = seatDetails?.seatType !== "yellow";
+    
     const ticket = await Ticket.create({
       tokenId: Number(tokenId),
       eventId,
@@ -97,6 +157,7 @@ router.post("/mint", auth, validate(mintSchema), async (req, res) => {
       transferCount: 0,
       qrSecret: createQrSecret(),
       txHash: tx.hash,
+      canResale,
     });
 
     return res.json({ message: "Ticket minted", txHash: tx.hash, ticket });
@@ -104,6 +165,16 @@ router.post("/mint", auth, validate(mintSchema), async (req, res) => {
     return res
       .status(500)
       .json({ message: "Mint failed", error: error.message });
+  }
+});
+
+// Public debug endpoint to list all tickets in database
+router.get("/public/list/all", async (req, res) => {
+  try {
+    const tickets = await Ticket.find({}).limit(50).sort({ createdAt: -1 });
+    return res.json({ count: tickets.length, tickets: tickets.map(t => ({ tokenId: t.tokenId, eventId: t.eventId, seat: t.seat, ownerBstId: t.ownerBstId, createdAt: t.createdAt })) });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch tickets", error: error.message });
   }
 });
 
