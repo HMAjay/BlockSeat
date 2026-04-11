@@ -3,14 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { authenticator } from "@otplib/preset-browser";
 import api from "../services/api";
-
-// 30-second rotation
-authenticator.options = {
-  step: 30,
-  window: 1
-};
+import { generateTotp } from "../services/totp";
 
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
@@ -56,7 +50,7 @@ function QRDisplay() {
         }
         setTicket(current);
         const secret = current.qrSecret || deriveLegacySecret(safeTokenId);
-        setTotp(authenticator.generate(secret));
+        setTotp(await generateTotp(secret));
       } catch (error) {
         setMessage(error.response?.data?.message || "Failed to load ticket");
       }
@@ -68,6 +62,14 @@ function QRDisplay() {
   useEffect(() => {
     if (!ticket) return undefined;
     const secret = ticket.qrSecret || deriveLegacySecret(safeTokenId);
+    let active = true;
+
+    const refreshTotp = async () => {
+      const nextTotp = await generateTotp(secret);
+      if (active) {
+        setTotp(nextTotp);
+      }
+    };
 
     const timer = setInterval(() => {
       const now = Date.now();
@@ -75,12 +77,17 @@ function QRDisplay() {
       setCountdown(remaining);
 
       if (remaining === 30 || remaining === 29) {
-        setTotp(authenticator.generate(secret));
+        refreshTotp().catch(() => {});
       }
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [ticket]);
+    refreshTotp().catch(() => {});
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [ticket, safeTokenId]);
 
   const payload = useMemo(
     () =>
