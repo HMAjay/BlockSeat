@@ -64,7 +64,7 @@ function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify, onCantAttend
             Verify Ticket
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => onCantAttend(ticket)}>
-            {listedPrice ? `Update Can't Attend (Rs. ${listedPrice})` : "Can't Attend"}
+            {listedPrice ? `Listed for Resale (Rs. ${listedPrice})` : "Can't Attend"}
           </button>
         </div>
       ) : (
@@ -80,6 +80,9 @@ function MyTickets() {
   const [sentRequests, setSentRequests] = useState([]);
   const [marketListings, setMarketListings] = useState([]);
   const [message, setMessage] = useState("");
+  const [cantAttendTicket, setCantAttendTicket] = useState(null);
+  const [cantAttendPrice, setCantAttendPrice] = useState("");
+  const [listingBusy, setListingBusy] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -143,29 +146,51 @@ function MyTickets() {
   );
   const listingByTokenId = new Map(marketListings.map((listing) => [String(listing.tokenId), listing]));
 
-  const listTicketForMarket = async (ticket) => {
+  const openCantAttendModal = (ticket) => {
+    const existing = listingByTokenId.get(String(ticket.tokenId));
+    setCantAttendTicket(ticket);
+    setCantAttendPrice(existing ? String(existing.resalePrice) : String(ticket.faceValue));
+  };
+
+  const closeCantAttendModal = () => {
+    if (listingBusy) return;
+    setCantAttendTicket(null);
+    setCantAttendPrice("");
+  };
+
+  const listTicketForMarket = async () => {
+    if (!cantAttendTicket) return;
+
     try {
-      const existing = listingByTokenId.get(String(ticket.tokenId));
-      const input = window.prompt(
-        `Set resale price for seat ${ticket.seat} (max Rs. ${ticket.maxResalePrice})`,
-        String(existing?.resalePrice || ticket.faceValue)
-      );
-      if (input === null) return;
-      const price = Number(input);
+      const existing = listingByTokenId.get(String(cantAttendTicket.tokenId));
+      if (existing) {
+        setMessage(`Seat ${cantAttendTicket.seat} is already listed for Rs. ${existing.resalePrice}. This can only be done once.`);
+        closeCantAttendModal();
+        return;
+      }
+
+      const price = Number(cantAttendPrice);
       if (!Number.isFinite(price) || price <= 0) {
         return setMessage("Enter a valid resale price");
       }
+      if (price > cantAttendTicket.maxResalePrice) {
+        return setMessage(`Resale price cannot exceed Rs. ${cantAttendTicket.maxResalePrice}`);
+      }
 
+      setListingBusy(true);
       await api.post("/market/listings", {
-        tokenId: Number(ticket.tokenId),
+        tokenId: Number(cantAttendTicket.tokenId),
         resalePrice: price,
       });
 
       const { data } = await api.get("/market/listings/my");
       setMarketListings(data);
-      setMessage(`Seat ${ticket.seat} is now listed on market`);
+      setMessage(`Seat ${cantAttendTicket.seat} is now listed on market at Rs. ${price}`);
+      closeCantAttendModal();
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to list seat");
+    } finally {
+      setListingBusy(false);
     }
   };
 
@@ -271,7 +296,7 @@ function MyTickets() {
                 onViewQr={() => navigate(`/qr/${ticket.tokenId}`)}
                 onTransfer={() => navigate(`/transfer/${ticket.tokenId}`)}
                 onVerify={() => navigate(`/verify/${ticket.tokenId}`)}
-                onCantAttend={() => listTicketForMarket(ticket)}
+                onCantAttend={() => openCantAttendModal(ticket)}
                 transferLocked={pendingTransferIds.has(String(ticket.tokenId))}
                 listedPrice={listingByTokenId.get(String(ticket.tokenId))?.resalePrice}
               />
@@ -389,6 +414,60 @@ function MyTickets() {
           )) : <div className="empty-state">No incoming transfer requests.</div>}
         </div>
       </section>
+
+      {cantAttendTicket && (
+        <div className="modal-backdrop" role="presentation" onClick={closeCantAttendModal}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cant-attend-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <span className="eyebrow">Can&apos;t attend</span>
+            <h2 className="section-title" id="cant-attend-title" style={{ marginTop: 16 }}>
+              List seat {cantAttendTicket.seat} for resale
+            </h2>
+            <p className="section-copy">
+              This action can be done only once. After you list this ticket, the resale price cannot be changed.
+            </p>
+
+            {listingByTokenId.has(String(cantAttendTicket.tokenId)) ? (
+              <div className="modal-note">
+                This ticket is already listed for Rs. {listingByTokenId.get(String(cantAttendTicket.tokenId)).resalePrice}. The price is locked and cannot be updated.
+              </div>
+            ) : (
+              <>
+                <label className="field">
+                  <span className="field-label">Resale price</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={cantAttendTicket.maxResalePrice}
+                    value={cantAttendPrice}
+                    onChange={(event) => setCantAttendPrice(event.target.value)}
+                    placeholder="Enter resale price in INR"
+                  />
+                </label>
+                <div className="modal-note">
+                  Max allowed price: Rs. {cantAttendTicket.maxResalePrice}. Once confirmed, this listing price stays fixed.
+                </div>
+              </>
+            )}
+
+            <div className="btn-row" style={{ marginTop: 18 }}>
+              <button type="button" className="btn btn-secondary" onClick={closeCantAttendModal} disabled={listingBusy}>
+                Close
+              </button>
+              {!listingByTokenId.has(String(cantAttendTicket.tokenId)) && (
+                <button type="button" className="btn btn-primary" onClick={listTicketForMarket} disabled={listingBusy}>
+                  {listingBusy ? "Listing..." : "Confirm Resale"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {message && <div className={`alert ${message.toLowerCase().includes("fail") ? "error" : ""}`}>{message}</div>}
     </div>

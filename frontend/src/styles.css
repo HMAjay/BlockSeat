@@ -1039,6 +1039,37 @@ button {
   font-size: 13px;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(6, 6, 6, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.modal-card {
+  width: min(100%, 520px);
+  padding: 24px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--panel-border);
+  background: rgba(19, 19, 19, 0.96);
+  box-shadow: var(--shadow);
+}
+
+.modal-note {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-variant);
+  line-height: 1.6;
+}
+
 /* Home Page Luxury Styling */
 .app-main {
   position: relative;
