@@ -1,8 +1,11 @@
 // Shared Axios client automatically attaches JWT for protected routes.
 import axios from "axios";
 
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const baseURL = rawBaseUrl.replace(/\/+$/, "");
+
 const api = axios.create({
-  baseURL: "http://localhost:5000"
+  baseURL
 });
 
 api.interceptors.request.use((config) => {

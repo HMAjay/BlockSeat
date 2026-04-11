@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: blockseat-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGINS
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: MASTER_ENCRYPTION_KEY
+        sync: false
+      - key: POLYGON_RPC_URL
+        sync: false
+      - key: CONTRACT_ADDRESS
+        sync: false
+      - key: ADMIN_PRIVATE_KEY
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: ADMIN_USER
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_JWT_SECRET
+        sync: false
+      - key: CAPTCHA_ENABLED
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: QUEUE_PASS_SECRET
+        sync: false
+      - key: QUEUE_MAX_ACTIVE_CHECKOUTS
+        sync: false
+      - key: QUEUE_JOIN_RATE_LIMIT
+        sync: false
+      - key: QUEUE_STATUS_RATE_LIMIT
+        sync: false
+      - key: QUEUE_PASS_TTL_SECONDS
+        sync: false
+      - key: QUEUE_WAIT_TTL_SECONDS
+        sync: false
+      - key: QUEUE_STATUS_MIN_POLL_MS
+        sync: false
+      - key: TOTP_ISSUER
+        sync: false
