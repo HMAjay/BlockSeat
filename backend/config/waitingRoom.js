@@ -9,8 +9,6 @@ const PASS_TTL_SECONDS = Number(process.env.QUEUE_PASS_TTL_SECONDS || 180);
 const WAIT_TTL_SECONDS = Number(process.env.QUEUE_WAIT_TTL_SECONDS || 1800);
 const STATUS_MIN_POLL_MS = Number(process.env.QUEUE_STATUS_MIN_POLL_MS || 1500);
 const QUEUE_PASS_SECRET = process.env.QUEUE_PASS_SECRET || process.env.JWT_SECRET;
-const IS_PRODUCTION = process.env.NODE_ENV === "production";
-
 const memory = {
   active: new Map(),
   waiting: [],
@@ -20,14 +18,6 @@ const memory = {
 
 let redisClientPromise = null;
 
-class WaitingRoomUnavailableError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "WaitingRoomUnavailableError";
-    this.code = "WAITING_ROOM_UNAVAILABLE";
-  }
-}
-
 const queuePrefix = (scope) => `blockseat:queue:${scope}`;
 const activeKey = (scope) => `${queuePrefix(scope)}:active`;
 const waitingKey = (scope) => `${queuePrefix(scope)}:waiting`;
@@ -35,16 +25,14 @@ const passKey = (scope, queueId) => `${queuePrefix(scope)}:pass:${queueId}`;
 const waiterKey = (scope, queueId) => `${queuePrefix(scope)}:waiter:${queueId}`;
 const pollKey = (scope, queueId, bstId) => `${queuePrefix(scope)}:poll:${queueId}:${bstId}`;
 
-const isWaitingRoomUnavailable = (error) => error?.code === "WAITING_ROOM_UNAVAILABLE";
+const isWaitingRoomUnavailable = () => false;
 
 const buildQueueToken = (bstId, queueId, scope = QUEUE_SCOPE) =>
   jwt.sign({ bstId, scope, queueId }, QUEUE_PASS_SECRET, { expiresIn: PASS_TTL_SECONDS });
 
 const getRedisClient = async () => {
   if (!process.env.REDIS_URL) {
-    if (IS_PRODUCTION) {
-      throw new WaitingRoomUnavailableError("REDIS_URL is required in production");
-    }
+    console.warn("[BlockSeat] REDIS_URL not configured, using in-memory waiting room.");
     return null;
   }
 
@@ -57,9 +45,6 @@ const getRedisClient = async () => {
       .connect()
       .then(() => client)
       .catch((error) => {
-        if (IS_PRODUCTION) {
-          throw new WaitingRoomUnavailableError(`Redis unavailable in production: ${error.message}`);
-        }
         console.warn(`[BlockSeat] Redis unavailable, using in-memory waiting room: ${error.message}`);
         return null;
       });

@@ -173,7 +173,6 @@ function Login() {
             </div>
           )}
           {message && <div className={`alert ${isError ? "error" : ""}`}>{message}</div>}
-          <p className="hint">Local mode: OTP appears in backend console.</p>
         </section>
       </div>
     </div>
