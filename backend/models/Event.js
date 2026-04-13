@@ -6,6 +6,8 @@ const seatSchema = new mongoose.Schema(
     seatId: { type: String, required: true },
     row: { type: String, required: true },
     stand: { type: String, required: true },
+    section: { type: String },
+    category: { type: String },
     price: { type: Number, required: true },
     isTaken: { type: Boolean, default: false },
     seatType: { type: String, enum: ["normal", "yellow"], default: "normal" }

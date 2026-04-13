@@ -21,7 +21,18 @@ router.get("/", auth, async (req, res) => {
     const tickets = await Ticket.find({ ownerBstId: req.user.bstId }).sort({
       createdAt: -1,
     });
-    return res.json(tickets);
+    const eventIds = [...new Set(tickets.map((ticket) => ticket.eventId).filter(Boolean))];
+    const events = await Event.find({ eventId: { $in: eventIds } })
+      .select("eventId name")
+      .lean();
+    const eventNameById = new Map(events.map((event) => [event.eventId, event.name]));
+
+    return res.json(
+      tickets.map((ticket) => ({
+        ...ticket.toObject(),
+        eventName: eventNameById.get(ticket.eventId) || ticket.eventId,
+      }))
+    );
   } catch (error) {
     return res
       .status(500)

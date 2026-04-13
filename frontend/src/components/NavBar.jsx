@@ -1,63 +1,157 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import BrandLogo from "./BrandLogo";
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   if (location.pathname === "/login") return null;
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!menuRef.current?.contains(event.target)) {
+        setProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setProfileOpen(false);
+  }, [location.pathname]);
 
   const handleSignOut = () => {
     localStorage.removeItem("blockseat_token");
     localStorage.removeItem("blockseat_bstId");
     localStorage.removeItem("blockseat_wallet");
+    localStorage.removeItem("blockseat_admin_token");
     navigate("/login");
   };
 
-  const token = localStorage.getItem("blockseat_token");
-  const bstId = localStorage.getItem("blockseat_bstId");
   const isAuthed = Boolean(localStorage.getItem("blockseat_token"));
+  const bstId = localStorage.getItem("blockseat_bstId") || "";
+
+  const navItems = [
+    { label: "Home", path: "/" },
+  ];
 
   return (
     <header className="navbar">
       <div className="navbar-inner">
         <button type="button" className="brand btn-ghost" onClick={() => navigate("/")}>
-          <span className="brand-mark">B</span>
+          <span className="brand-mark">
+            <BrandLogo />
+          </span>
           <span className="brand-copy">
             <span className="brand-name">BlockSeat</span>
-            <span className="brand-tag">NFT ticketing for live events</span>
+            <span className="brand-tag">Match Tickets</span>
           </span>
         </button>
 
-        <div className="nav-actions">
-          {bstId && (
-            <span className="bst-pill">
-              BST ID <strong>{bstId}</strong>
-            </span>
-          )}
-          <button type="button" className="btn btn-secondary" onClick={() => navigate("/")}>
-            Home
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate("/events")}>
-            Browse Events
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate("/verify-owner")}>
-            Verify Owner
-          </button>
-          {isAuthed && (
-            <button type="button" className="btn btn-secondary" onClick={() => navigate("/admin")}>
-              Admin
-            </button>
-          )}
+        <button
+          type="button"
+          className={`mobile-menu-toggle ${mobileMenuOpen ? "active" : ""}`}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+          aria-expanded={mobileMenuOpen}
+          aria-label="Toggle navigation menu"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <div className={`nav-actions ${mobileMenuOpen ? "mobile-open" : ""}`}>
+          <nav className="nav-links" aria-label="Primary">
+            {navItems.map((item) => {
+              const isActive = item.path === "/"
+                ? location.pathname === "/"
+                : location.pathname.startsWith(item.path);
+
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  className={`nav-link ${isActive ? "active" : ""}`}
+                  onClick={() => {
+                    navigate(item.path);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+
           {isAuthed ? (
-            <button type="button" className="btn btn-primary" onClick={handleSignOut}>
-              Sign Out
+            <button
+              type="button"
+              className="wallet-pill"
+              onClick={() => {
+                navigate("/my-tickets");
+                setMobileMenuOpen(false);
+              }}
+            >
+              My Tickets
             </button>
           ) : (
-            <button type="button" className="btn btn-primary" onClick={() => navigate("/login")}>
+            <button
+              type="button"
+              className="wallet-pill"
+              onClick={() => {
+                navigate("/login");
+                setMobileMenuOpen(false);
+              }}
+            >
               Sign In
             </button>
           )}
+
+          <div className="profile-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="profile-trigger"
+              onClick={() => setProfileOpen((open) => !open)}
+              aria-expanded={profileOpen}
+            >
+              <span className="profile-trigger-label">Profile</span>
+            </button>
+
+            {profileOpen ? (
+              <div className="profile-dropdown">
+                <div className="profile-dropdown-copy">
+                  <span className="profile-label">Account</span>
+                  <strong>{isAuthed ? "Signed in" : "Guest"}</strong>
+                  {isAuthed && bstId ? (
+                    <span className="profile-bst">BST ID: {bstId}</span>
+                  ) : null}
+                </div>
+                {isAuthed ? (
+                  <button type="button" className="profile-dropdown-link" onClick={() => navigate("/my-tickets")}>
+                    My Tickets
+                  </button>
+                ) : (
+                  <button type="button" className="profile-dropdown-link" onClick={() => navigate("/login")}>
+                    Sign In
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="profile-dropdown-link danger"
+                  onClick={isAuthed ? handleSignOut : () => navigate("/login")}
+                >
+                  {isAuthed ? "Sign Out" : "Sign In"}
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </header>

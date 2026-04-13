@@ -1,4 +1,3 @@
-// Login page drives phone OTP flow and stores JWT/BST identity locally.
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -91,7 +90,7 @@ function Login() {
       localStorage.setItem("blockseat_wallet", data.walletAddress);
       setBstId(data.bstId);
       setMessage("Login successful");
-      setTimeout(() => navigate("/"), 900);
+      setTimeout(() => navigate("/"), 700);
     } catch (error) {
       setMessage(error.response?.data?.message || "OTP verification failed");
     }
@@ -103,37 +102,12 @@ function Login() {
 
   return (
     <div className="login-wrap">
-      <div className="login-card">
-        <aside className="login-aside">
-          <span className="eyebrow">Login</span>
-          <div className="login-copy">
-            <h1 className="title" style={{ marginBottom: 0 }}>Access your tickets.</h1>
-            <p className="subtitle">Phone number + OTP.</p>
-            <div className="helper-row">
-              <span className="helper-chip">Fast OTP</span>
-              <span className="helper-chip">Secure access</span>
-            </div>
-            <div className="stats-row">
-              <div className="stat">
-                <span className="stat-value">30s</span>
-                <span className="stat-label">QR refresh window</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value">Polygon</span>
-                <span className="stat-label">Ticket network</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value">BST ID</span>
-                <span className="stat-label">Your identity layer</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <section className="login-form">
+      <div className="login-card login-card-compact">
+        <section className="login-form login-form-compact">
           <div>
-            <h2 className="form-title">Sign in to BlockSeat</h2>
-            <p className="form-subtitle">Enter phone, complete CAPTCHA, verify OTP.</p>
+            <span className="eyebrow">Login</span>
+            <h1 className="form-title login-title">Sign in</h1>
+            <p className="form-subtitle">Enter your phone number and OTP to continue.</p>
           </div>
 
           <div className="form-grid">
@@ -143,7 +117,7 @@ function Login() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Phone number"
             />
-            <button type="button" className="btn btn-secondary" onClick={sendOtp} disabled={!canSendOtp}>
+            <button type="button" className="btn btn-secondary login-action" onClick={sendOtp} disabled={!canSendOtp}>
               {isSendingOtp ? "Sending..." : "Send OTP"}
             </button>
 
@@ -162,16 +136,12 @@ function Login() {
               onChange={(e) => setOtp(e.target.value.slice(0, 6))}
               placeholder="6-digit OTP"
             />
-            <button type="button" className="btn btn-primary" onClick={verifyOtp}>
+            <button type="button" className="btn btn-primary login-action" onClick={verifyOtp}>
               Verify OTP
             </button>
           </div>
 
-          {bstId && (
-            <div className="alert success">
-              Your BST ID: <strong>{bstId}</strong>
-            </div>
-          )}
+          {bstId ? <div className="alert success">Account verified. Redirecting you to bookings.</div> : null}
           {message && <div className={`alert ${isError ? "error" : ""}`}>{message}</div>}
         </section>
       </div>

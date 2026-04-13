@@ -1,5 +1,4 @@
-// Admin page: small credential box and match scheduler using default Match-001 seat pattern.
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -7,12 +6,13 @@ function AdminSchedule() {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [eventId, setEventId] = useState("Match-003");
-  const [name, setName] = useState("");
+  const [opponent, setOpponent] = useState("Mumbai Indians");
   const [date, setDate] = useState("");
-  const [venue, setVenue] = useState("");
+  const [venue, setVenue] = useState("M. Chinnaswamy Stadium, Bengaluru");
   const [message, setMessage] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [createdEventId, setCreatedEventId] = useState("");
+  const [templateSections, setTemplateSections] = useState([]);
   const navigate = useNavigate();
 
   const adminToken = localStorage.getItem("blockseat_admin_token") || "";
@@ -22,6 +22,24 @@ function AdminSchedule() {
     const lowered = message.toLowerCase();
     return lowered.includes("failed") || lowered.includes("invalid") || lowered.includes("missing") || lowered.includes("exists");
   }, [message]);
+
+  useEffect(() => {
+    const loadTemplate = async () => {
+      if (!adminToken) return;
+
+      try {
+        const { data } = await api.get("/admin/match-template", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        setVenue(data.venue);
+        setTemplateSections(data.sections || []);
+      } catch (error) {
+        setMessage(error.response?.data?.message || "Failed to load admin template");
+      }
+    };
+
+    loadTemplate();
+  }, [adminToken]);
 
   const loginAdmin = async () => {
     try {
@@ -45,8 +63,8 @@ function AdminSchedule() {
   const scheduleMatch = async () => {
     try {
       if (!adminToken) return setMessage("Login as admin first");
-      if (!eventId || !name || !date || !venue) {
-        return setMessage("Fill event ID, match name, date, and venue");
+      if (!eventId || !opponent || !date || !venue) {
+        return setMessage("Fill event ID, opponent, date, and venue");
       }
 
       setIsBusy(true);
@@ -54,7 +72,7 @@ function AdminSchedule() {
         "/admin/matches",
         {
           eventId,
-          name,
+          opponent,
           date: new Date(date).toISOString(),
           venue,
         },
@@ -74,7 +92,7 @@ function AdminSchedule() {
       <section className="hero-card">
         <span className="eyebrow">Admin console</span>
         <h1 className="title">Schedule new match</h1>
-        <p className="subtitle">Create a new booking event with the same seat pattern and pricing layout as Match-001.</p>
+        <p className="subtitle">Create a new RCB home fixture. Every match keeps the same East, West, North, and South stadium structure automatically.</p>
       </section>
 
       {!isAuthed ? (
@@ -98,14 +116,14 @@ function AdminSchedule() {
           <div className="section-header">
             <div>
               <h2 className="section-title">Schedule new match</h2>
-              <p className="section-copy">On create, a full seat map is generated and appears in Browse Events.</p>
+              <p className="section-copy">On create, the new match appears in the RCB fixtures list and gets the same 4-section clickable stadium map.</p>
             </div>
             <button type="button" className="btn btn-secondary" onClick={logoutAdmin}>Logout</button>
           </div>
 
           <div className="form-grid">
             <input className="input" placeholder="Event ID (Match-003)" value={eventId} onChange={(e) => setEventId(e.target.value)} />
-            <input className="input" placeholder="Match name (SRH vs KKR)" value={name} onChange={(e) => setName(e.target.value)} />
+            <input className="input" placeholder="Opponent (Mumbai Indians)" value={opponent} onChange={(e) => setOpponent(e.target.value)} />
             <input className="input" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
             <input className="input" placeholder="Venue" value={venue} onChange={(e) => setVenue(e.target.value)} />
             <button type="button" className="btn btn-primary" onClick={scheduleMatch} disabled={isBusy}>
@@ -117,6 +135,18 @@ function AdminSchedule() {
               </button>
             ) : null}
           </div>
+
+          {templateSections.length ? (
+            <div className="admin-section-preview">
+              {templateSections.map((section) => (
+                <div key={section.id} className="admin-section-chip">
+                  <strong>{section.section}</strong>
+                  <span>{section.category}</span>
+                  <span>{section.availableSeats} seats · Rs {section.price}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
       )}
 

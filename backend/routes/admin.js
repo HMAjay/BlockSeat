@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { z } = require("zod");
 const Event = require("../models/Event");
 const validate = require("../middleware/validate");
+const { STADIUM_VENUE, buildSectionSummary, buildStadiumSeats } = require("../utils/stadiumLayout");
 
 const router = express.Router();
 
@@ -18,9 +19,10 @@ const adminLoginSchema = z.object({
 
 const scheduleMatchSchema = z.object({
   eventId: z.string().regex(/^Match-\d+$/, "eventId must be like Match-003"),
-  name: z.string().min(3, "name is required"),
+  name: z.string().min(3, "name is required").optional(),
+  opponent: z.string().min(2, "opponent is required").optional(),
   date: z.string().datetime("date must be an ISO datetime string"),
-  venue: z.string().min(3, "venue is required"),
+  venue: z.string().min(3, "venue is required").optional(),
 });
 
 const adminAuth = (req, res, next) => {
@@ -42,24 +44,12 @@ const adminAuth = (req, res, next) => {
   }
 };
 
-const buildDefaultSeats = () => {
-  const layout = [
-    { row: "A", stand: "North", price: 1500 },
-    { row: "B", stand: "East", price: 4000 },
-    { row: "C", stand: "West", price: 4000 },
-    { row: "D", stand: "South", price: 7000 },
-  ];
-
-  return layout.flatMap((group) =>
-    Array.from({ length: 6 }, (_, index) => ({
-      seatId: `${group.row}${index + 1}`,
-      row: group.row,
-      stand: group.stand,
-      price: group.price,
-      isTaken: false,
-    }))
-  );
-};
+router.get("/match-template", adminAuth, (req, res) =>
+  res.json({
+    venue: STADIUM_VENUE,
+    sections: buildSectionSummary(buildStadiumSeats()),
+  })
+);
 
 router.post("/login", validate(adminLoginSchema), async (req, res) => {
   const { userId, password } = req.body;
@@ -73,18 +63,19 @@ router.post("/login", validate(adminLoginSchema), async (req, res) => {
 
 router.post("/matches", adminAuth, validate(scheduleMatchSchema), async (req, res) => {
   try {
-    const { eventId, name, date, venue } = req.body;
+    const { eventId, name, opponent, date, venue } = req.body;
     const exists = await Event.findOne({ eventId });
     if (exists) {
       return res.status(400).json({ message: "Event ID already exists" });
     }
 
-    const seats = buildDefaultSeats();
+    const matchName = name?.trim() || `Royal Challengers Bengaluru vs ${opponent?.trim() || "Opponent"}`;
+    const seats = buildStadiumSeats();
     const event = await Event.create({
       eventId,
-      name,
+      name: matchName,
       date: new Date(date),
-      venue,
+      venue: venue?.trim() || STADIUM_VENUE,
       totalSeats: seats.length,
       seats,
     });

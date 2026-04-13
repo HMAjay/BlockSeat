@@ -14,61 +14,60 @@ const loadRazorpay = () =>
     document.body.appendChild(script);
   });
 
-function TicketCard({ ticket, used, onViewQr, onTransfer, onVerify, onCantAttend, transferLocked, listedPrice }) {
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+
+function TicketCard({ ticket, used, onViewQr, onTransfer, onCantAttend, transferLocked, listedPrice }) {
+  const ticketTitle = ticket.eventName || ticket.eventId;
+
   return (
     <article className="ticket-card">
       <div className="ticket-topline">
-        <div className="ticket-meta">
+        <div className="ticket-card-header">
           <span className={`status-badge ${used ? "bad" : "good"}`}>{used ? "Used" : "Active"}</span>
-          <span className="ticket-id">#{ticket.tokenId}</span>
+          <span className="ticket-card-kicker">Ticket #{ticket.tokenId}</span>
+          <h3 className="ticket-card-event">{ticketTitle}</h3>
         </div>
-        <span className="status-badge">{ticket.eventId}</span>
+        {!used && listedPrice ? <span className="status-badge">Listed for resale</span> : null}
       </div>
 
       <div className="ticket-details">
         <div className="detail">
-          <span className="detail-label">Seat</span>
+          <span className="detail-label">Seat: </span>
           <span className="detail-value">{ticket.seat}</span>
         </div>
         <div className="detail">
-          <span className="detail-label">Face value</span>
-          <span className="detail-value">Rs. {ticket.faceValue}</span>
+          <span className="detail-label">Face value: </span>
+          <span className="detail-value">{formatCurrency(ticket.faceValue)}</span>
         </div>
         <div className="detail">
-          <span className="detail-label">Max resale</span>
-          <span className="detail-value">Rs. {ticket.maxResalePrice}</span>
+          <span className="detail-label">Max Resale: </span>
+          <span className="detail-value">{formatCurrency(ticket.maxResalePrice)}</span>
         </div>
         <div className="detail">
-          <span className="detail-label">Transfers</span>
+          <span className="detail-label">Transfer: </span>
           <span className="detail-value">{ticket.transferCount}</span>
-        </div>
-        <div className="detail" style={{ gridColumn: "1 / -1" }}>
-          <span className="detail-label">Tx hash</span>
-          <span className="detail-value" style={{ wordBreak: "break-all" }}>{ticket.txHash}</span>
         </div>
       </div>
 
       {!used ? (
-        <div className="btn-row" style={{ marginTop: 16 }}>
+        <div className="ticket-actions">
           <button type="button" className="btn btn-secondary" onClick={() => onViewQr(ticket)}>
             View QR
           </button>
           <button type="button" className="btn btn-primary" onClick={() => onTransfer(ticket)} disabled={transferLocked}>
             {transferLocked ? "Transfer Pending" : "Transfer"}
           </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => onVerify(ticket)}
-          >
-            Verify Ticket
-          </button>
           <button type="button" className="btn btn-secondary" onClick={() => onCantAttend(ticket)}>
-            {listedPrice ? `Listed for Resale (Rs. ${listedPrice})` : "Can't Attend"}
+            {listedPrice ? `Listed for Resale (${formatCurrency(listedPrice)})` : "Can't Attend"}
           </button>
         </div>
       ) : (
-        <p className="hint">This ticket has already been scanned at the gate.</p>
+        <p className="hint">This pass has already been scanned at the gate.</p>
       )}
     </article>
   );
@@ -79,6 +78,7 @@ function MyTickets() {
   const [requests, setRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
   const [marketListings, setMarketListings] = useState([]);
+  const [activeTab, setActiveTab] = useState("active");
   const [message, setMessage] = useState("");
   const [cantAttendTicket, setCantAttendTicket] = useState(null);
   const [cantAttendPrice, setCantAttendPrice] = useState("");
@@ -86,57 +86,25 @@ function MyTickets() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchTickets = async () => {
+    const loadData = async () => {
       try {
-        const { data } = await api.get("/tickets");
-        setTickets(data);
-      } catch (error) {
-        setMessage(error.response?.data?.message || "Failed to fetch tickets");
-      }
-    };
-    fetchTickets();
-  }, []);
+        const [ticketsRes, incomingRes, sentRes, listingsRes] = await Promise.all([
+          api.get("/tickets"),
+          api.get("/transfer/requests/incoming"),
+          api.get("/transfer/requests/sent"),
+          api.get("/market/listings/my"),
+        ]);
 
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const { data } = await api.get("/transfer/requests/incoming");
-        setRequests(data);
+        setTickets(ticketsRes.data);
+        setRequests(incomingRes.data);
+        setSentRequests(sentRes.data);
+        setMarketListings(listingsRes.data);
       } catch (error) {
-        if (!message) {
-          setMessage(error.response?.data?.message || "Failed to fetch transfer requests");
-        }
+        setMessage(error.response?.data?.message || "Failed to load ticket data");
       }
     };
-    fetchRequests();
-  }, []);
 
-  useEffect(() => {
-    const fetchSentRequests = async () => {
-      try {
-        const { data } = await api.get("/transfer/requests/sent");
-        setSentRequests(data);
-      } catch (error) {
-        if (!message) {
-          setMessage(error.response?.data?.message || "Failed to fetch sent transfer requests");
-        }
-      }
-    };
-    fetchSentRequests();
-  }, []);
-
-  useEffect(() => {
-    const fetchMarketListings = async () => {
-      try {
-        const { data } = await api.get("/market/listings/my");
-        setMarketListings(data);
-      } catch (error) {
-        if (!message) {
-          setMessage(error.response?.data?.message || "Failed to fetch market listings");
-        }
-      }
-    };
-    fetchMarketListings();
+    loadData();
   }, []);
 
   const active = tickets.filter((t) => !t.isUsed);
@@ -145,6 +113,11 @@ function MyTickets() {
     sentRequests.filter((request) => request.status === "pending").map((request) => String(request.tokenId))
   );
   const listingByTokenId = new Map(marketListings.map((listing) => [String(listing.tokenId), listing]));
+  const tabCounts = {
+    active: active.length,
+    transferred: sentRequests.length,
+    incoming: requests.length,
+  };
 
   const openCantAttendModal = (ticket) => {
     const existing = listingByTokenId.get(String(ticket.tokenId));
@@ -164,7 +137,7 @@ function MyTickets() {
     try {
       const existing = listingByTokenId.get(String(cantAttendTicket.tokenId));
       if (existing) {
-        setMessage(`Seat ${cantAttendTicket.seat} is already listed for Rs. ${existing.resalePrice}. This can only be done once.`);
+        setMessage(`Seat ${cantAttendTicket.seat} is already listed for ${formatCurrency(existing.resalePrice)}. This can only be done once.`);
         closeCantAttendModal();
         return;
       }
@@ -174,7 +147,7 @@ function MyTickets() {
         return setMessage("Enter a valid resale price");
       }
       if (price > cantAttendTicket.maxResalePrice) {
-        return setMessage(`Resale price cannot exceed Rs. ${cantAttendTicket.maxResalePrice}`);
+        return setMessage(`Resale price cannot exceed ${formatCurrency(cantAttendTicket.maxResalePrice)}`);
       }
 
       setListingBusy(true);
@@ -185,7 +158,7 @@ function MyTickets() {
 
       const { data } = await api.get("/market/listings/my");
       setMarketListings(data);
-      setMessage(`Seat ${cantAttendTicket.seat} is now listed on market at Rs. ${price}`);
+      setMessage(`Seat ${cantAttendTicket.seat} is now listed on market at ${formatCurrency(price)}`);
       closeCantAttendModal();
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to list seat");
@@ -259,160 +232,190 @@ function MyTickets() {
         <span className="eyebrow">Wallet view</span>
         <h1 className="title">My tickets</h1>
         <p className="subtitle">
-          Track your active entry passes, open QR codes, and move tickets using the resale guardrails built into the platform.
+          Keep your matchday passes organized, open entry QR codes fast, and handle resale or transfers without the clutter.
         </p>
         <div className="stats-row">
           <div className="stat">
-            <span className="stat-value">{active.length}</span>
+            <span className="stat-value">{active.length} </span>
             <span className="stat-label">Active tickets</span>
           </div>
           <div className="stat">
-            <span className="stat-value">{used.length}</span>
+            <span className="stat-value">{used.length} </span>
             <span className="stat-label">Used tickets</span>
           </div>
           <div className="stat">
-            <span className="stat-value">{tickets.length}</span>
+            <span className="stat-value">{tickets.length} </span>
             <span className="stat-label">Total in wallet</span>
           </div>
         </div>
 
       </section>
 
-      <div className="layout-split">
-        <section className="section">
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Active tickets</h2>
-              <p className="section-copy">These tickets can still be scanned, viewed, or transferred.</p>
+      <section className="section">
+        <div className="tickets-tab-row" role="tablist" aria-label="Ticket sections">
+          <button
+            type="button"
+            className={`tickets-tab ${activeTab === "active" ? "active" : ""}`}
+            onClick={() => setActiveTab("active")}
+          >
+            Active Tickets
+            <span className="tickets-tab-count">{tabCounts.active}</span>
+          </button>
+          <button
+            type="button"
+            className={`tickets-tab ${activeTab === "transferred" ? "active" : ""}`}
+            onClick={() => setActiveTab("transferred")}
+          >
+            Transferred Tickets
+            <span className="tickets-tab-count">{tabCounts.transferred}</span>
+          </button>
+          <button
+            type="button"
+            className={`tickets-tab ${activeTab === "incoming" ? "active" : ""}`}
+            onClick={() => setActiveTab("incoming")}
+          >
+            Incoming
+            <span className="tickets-tab-count">{tabCounts.incoming}</span>
+          </button>
+        </div>
+
+        {activeTab === "active" ? (
+          <div className="stack" style={{ marginTop: 20 }}>
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Active tickets</h2>
+                <p className="section-copy">These tickets are ready for entry, transfer, or resale listing.</p>
+              </div>
+            </div>
+
+            <div className="stack">
+              {active.length ? active.map((ticket) => (
+                <TicketCard
+                  key={ticket.tokenId}
+                  ticket={ticket}
+                  used={false}
+                  onViewQr={() => navigate(`/qr/${ticket.tokenId}`)}
+                  onTransfer={() => navigate(`/transfer/${ticket.tokenId}`)}
+                  onCantAttend={() => openCantAttendModal(ticket)}
+                  transferLocked={pendingTransferIds.has(String(ticket.tokenId))}
+                  listedPrice={listingByTokenId.get(String(ticket.tokenId))?.resalePrice}
+                />
+              )) : <div className="empty-state">No active tickets yet. Book one from the event seat map.</div>}
+            </div>
+
+            <div className="section-header" style={{ marginTop: 8 }}>
+              <div>
+                <h2 className="section-title">Used tickets</h2>
+                <p className="section-copy">Past entries stay here for reference.</p>
+              </div>
+            </div>
+
+            <div className="stack">
+              {used.length ? used.map((ticket) => (
+                <TicketCard key={ticket.tokenId} ticket={ticket} used />
+              )) : <div className="empty-state">No used tickets yet.</div>}
             </div>
           </div>
+        ) : null}
 
-          <div className="stack">
-            {active.length ? active.map((ticket) => (
-              <TicketCard
-                key={ticket.tokenId}
-                ticket={ticket}
-                used={false}
-                onViewQr={() => navigate(`/qr/${ticket.tokenId}`)}
-                onTransfer={() => navigate(`/transfer/${ticket.tokenId}`)}
-                onVerify={() => navigate(`/verify/${ticket.tokenId}`)}
-                onCantAttend={() => openCantAttendModal(ticket)}
-                transferLocked={pendingTransferIds.has(String(ticket.tokenId))}
-                listedPrice={listingByTokenId.get(String(ticket.tokenId))?.resalePrice}
-              />
-            )) : <div className="empty-state">No active tickets yet. Book one from the event seat map.</div>}
-          </div>
-        </section>
+        {activeTab === "transferred" ? (
+          <div className="stack" style={{ marginTop: 20 }}>
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Transferred tickets</h2>
+                <p className="section-copy">Completed transfer requests remain here so you can see tickets that moved to another buyer.</p>
+              </div>
+            </div>
 
-        <section className="section">
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Used tickets</h2>
-              <p className="section-copy">Past entries stay here for reference.</p>
+            <div className="stack">
+              {sentRequests.length ? sentRequests.map((request) => {
+                const isCompleted = request.status === "completed";
+                return (
+                  <article className="ticket-card" key={request._id}>
+                    <div className="ticket-topline">
+                      <div className="ticket-card-header">
+                        <span className={`status-badge ${isCompleted ? "good" : ""}`}>
+                          {isCompleted ? "Ticket transferred" : request.status}
+                        </span>
+                        <span className="ticket-card-kicker">Ticket #{request.tokenId}</span>
+                        <h3 className="ticket-card-event">{request.eventName || request.eventId}</h3>
+                      </div>
+                    </div>
+                    <div className="ticket-details">
+                      <div className="detail">
+                        <span className="detail-label">To</span>
+                        <span className="detail-value">{request.buyerBstId}</span>
+                      </div>
+                      <div className="detail">
+                        <span className="detail-label">Seat</span>
+                        <span className="detail-value">{request.seat}</span>
+                      </div>
+                      <div className="detail">
+                        <span className="detail-label">Price</span>
+                        <span className="detail-value">{formatCurrency(request.resalePrice)}</span>
+                      </div>
+                      <div className="detail">
+                        <span className="detail-label">Status</span>
+                        <span className="detail-value">{isCompleted ? "Completed" : "Awaiting buyer action"}</span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              }) : <div className="empty-state">No transferred tickets yet.</div>}
             </div>
           </div>
+        ) : null}
 
-          <div className="stack">
-            {used.length ? used.map((ticket) => (
-              <TicketCard key={ticket.tokenId} ticket={ticket} used />
-            )) : <div className="empty-state">No used tickets yet.</div>}
-          </div>
-        </section>
-      </div>
-
-      <section className="section">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">Transferred tickets</h2>
-            <p className="section-copy">Completed transfer requests remain here so you can see tickets that moved to another buyer.</p>
-          </div>
-        </div>
-
-        <div className="stack">
-          {sentRequests.length ? sentRequests.map((request) => {
-            const isCompleted = request.status === "completed";
-            return (
-              <article className="ticket-card" key={request._id}>
-                <div className="ticket-topline">
-                  <div className="ticket-meta">
-                    <span className={`status-badge ${isCompleted ? "good" : ""}`}>
-                      {isCompleted ? "Ticket transferred" : request.status}
-                    </span>
-                    <span className="ticket-id">#{request.tokenId}</span>
-                  </div>
-                  <span className="status-badge">{request.eventId}</span>
-                </div>
-                <div className="ticket-details">
-                  <div className="detail">
-                    <span className="detail-label">To</span>
-                    <span className="detail-value">{request.buyerBstId}</span>
-                  </div>
-                  <div className="detail">
-                    <span className="detail-label">Seat</span>
-                    <span className="detail-value">{request.seat}</span>
-                  </div>
-                  <div className="detail">
-                    <span className="detail-label">Price</span>
-                    <span className="detail-value">Rs. {request.resalePrice}</span>
-                  </div>
-                  <div className="detail">
-                    <span className="detail-label">Tx hash</span>
-                    <span className="detail-value" style={{ wordBreak: "break-all" }}>{request.txHash || request.paymentOrderId || "-"}</span>
-                  </div>
-                </div>
-              </article>
-            );
-          }) : <div className="empty-state">No transferred tickets yet.</div>}
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">Incoming transfer requests</h2>
-            <p className="section-copy">Sellers can request a transfer to your BST ID. Approve one to buy the ticket.</p>
-          </div>
-        </div>
-
-        <div className="stack">
-          {requests.length ? requests.map((request) => (
-            <article className="ticket-card" key={request._id}>
-              <div className="ticket-topline">
-                <div className="ticket-meta">
-                  <span className="status-badge">{request.status}</span>
-                  <span className="ticket-id">#{request.tokenId}</span>
-                </div>
-                <span className="status-badge">{request.eventId}</span>
+        {activeTab === "incoming" ? (
+          <div className="stack" style={{ marginTop: 20 }}>
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Incoming transfer requests</h2>
+                <p className="section-copy">Sellers can request a transfer to your BST ID. Approve one to buy the ticket.</p>
               </div>
-              <div className="ticket-details">
-                <div className="detail">
-                  <span className="detail-label">From</span>
-                  <span className="detail-value">{request.sellerBstId}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Buyer</span>
-                  <span className="detail-value">{request.buyerBstId}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Seat</span>
-                  <span className="detail-value">{request.seat}</span>
-                </div>
-                <div className="detail">
-                  <span className="detail-label">Price</span>
-                  <span className="detail-value">Rs. {request.resalePrice}</span>
-                </div>
-              </div>
-              <div className="btn-row" style={{ marginTop: 16 }}>
-                <button type="button" className="btn btn-primary" onClick={() => completeTransfer(request)}>
-                  Accept & Buy
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={() => declineTransfer(request._id)}>
-                  Decline
-                </button>
-              </div>
-            </article>
-          )) : <div className="empty-state">No incoming transfer requests.</div>}
-        </div>
+            </div>
+
+            <div className="stack">
+              {requests.length ? requests.map((request) => (
+                <article className="ticket-card" key={request._id}>
+                  <div className="ticket-topline">
+                    <div className="ticket-card-header">
+                      <span className="status-badge">{request.status}</span>
+                      <span className="ticket-card-kicker">Ticket #{request.tokenId}</span>
+                      <h3 className="ticket-card-event">{request.eventName || request.eventId}</h3>
+                    </div>
+                  </div>
+                  <div className="ticket-details">
+                    <div className="detail">
+                      <span className="detail-label">From</span>
+                      <span className="detail-value">{request.sellerBstId}</span>
+                    </div>
+                    <div className="detail">
+                      <span className="detail-label">Buyer</span>
+                      <span className="detail-value">{request.buyerBstId}</span>
+                    </div>
+                    <div className="detail">
+                      <span className="detail-label">Seat</span>
+                      <span className="detail-value">{request.seat}</span>
+                    </div>
+                    <div className="detail">
+                      <span className="detail-label">Price</span>
+                      <span className="detail-value">{formatCurrency(request.resalePrice)}</span>
+                    </div>
+                  </div>
+                  <div className="ticket-actions">
+                    <button type="button" className="btn btn-primary" onClick={() => completeTransfer(request)}>
+                      Accept & Buy
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={() => declineTransfer(request._id)}>
+                      Decline
+                    </button>
+                  </div>
+                </article>
+              )) : <div className="empty-state">No incoming transfer requests.</div>}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {cantAttendTicket && (
@@ -434,7 +437,8 @@ function MyTickets() {
 
             {listingByTokenId.has(String(cantAttendTicket.tokenId)) ? (
               <div className="modal-note">
-                This ticket is already listed for Rs. {listingByTokenId.get(String(cantAttendTicket.tokenId)).resalePrice}. The price is locked and cannot be updated.
+                This ticket is already listed for {formatCurrency(listingByTokenId.get(String(cantAttendTicket.tokenId)).resalePrice)}.
+                The price is locked and cannot be updated.
               </div>
             ) : (
               <>
@@ -450,12 +454,12 @@ function MyTickets() {
                   />
                 </label>
                 <div className="modal-note">
-                  Max allowed price: Rs. {cantAttendTicket.maxResalePrice}. Once confirmed, this listing price stays fixed.
+                  Max allowed price: {formatCurrency(cantAttendTicket.maxResalePrice)}. Once confirmed, this listing price stays fixed.
                 </div>
               </>
             )}
 
-            <div className="btn-row" style={{ marginTop: 18 }}>
+            <div className="ticket-actions">
               <button type="button" className="btn btn-secondary" onClick={closeCantAttendModal} disabled={listingBusy}>
                 Close
               </button>
