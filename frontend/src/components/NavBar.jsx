@@ -10,8 +10,7 @@ function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const { token, bstId } = useAuth();
-
-  if (location.pathname === "/login") return null;
+  const hideNavbar = location.pathname === "/login";
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -35,6 +34,8 @@ function Navbar() {
   };
 
   const isAuthed = Boolean(token);
+
+  if (hideNavbar) return null;
 
   const navItems = [
     { label: "Home", path: "/" },

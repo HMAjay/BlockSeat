@@ -2,13 +2,30 @@ import { useSyncExternalStore } from "react";
 
 const AUTH_CHANGE_EVENT = "blockseat-auth-change";
 
-function readAuthSnapshot() {
+function getAuthSnapshot() {
   return {
     token: localStorage.getItem("blockseat_token") || "",
     bstId: localStorage.getItem("blockseat_bstId") || "",
     walletAddress: localStorage.getItem("blockseat_wallet") || "",
     adminToken: localStorage.getItem("blockseat_admin_token") || "",
   };
+}
+
+let cachedSnapshot = getAuthSnapshot();
+
+function readAuthSnapshot() {
+  const nextSnapshot = getAuthSnapshot();
+  const hasChanged =
+    nextSnapshot.token !== cachedSnapshot.token ||
+    nextSnapshot.bstId !== cachedSnapshot.bstId ||
+    nextSnapshot.walletAddress !== cachedSnapshot.walletAddress ||
+    nextSnapshot.adminToken !== cachedSnapshot.adminToken;
+
+  if (hasChanged) {
+    cachedSnapshot = nextSnapshot;
+  }
+
+  return cachedSnapshot;
 }
 
 function emitAuthChange() {

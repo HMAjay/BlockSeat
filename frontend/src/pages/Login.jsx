@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import BrandLogo from "../components/BrandLogo";
 import api from "../services/api";
 import { signIn } from "../services/auth";
 
@@ -25,7 +26,6 @@ function Login() {
         sitekey: turnstileSiteKey,
         callback: (token) => {
           setCaptchaToken(token);
-          setMessage("");
         },
         "expired-callback": () => {
           setCaptchaToken("");
@@ -71,7 +71,7 @@ function Login() {
     try {
       setIsSendingOtp(true);
       await api.post("/auth/send-otp", { phone, captchaToken });
-      setMessage("OTP sent. Check backend console (mock SMS).");
+      setMessage(`OTP sent to ${phone}`);
       if (window.turnstile && widgetIdRef.current !== null) {
         window.turnstile.reset(widgetIdRef.current);
       }
@@ -104,7 +104,15 @@ function Login() {
       <div className="login-card login-card-compact">
         <section className="login-form login-form-compact">
           <div>
-            <span className="eyebrow">Login</span>
+            <div className="login-brand">
+              <span className="brand-mark login-brand-mark">
+                <BrandLogo />
+              </span>
+              <div className="brand-copy">
+                <span className="brand-name">BlockSeat</span>
+                <span className="brand-tag">Match Tickets</span>
+              </div>
+            </div>
             <h1 className="form-title login-title">Sign in</h1>
             <p className="form-subtitle">Enter your phone number and OTP to continue.</p>
           </div>
