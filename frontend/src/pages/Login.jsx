@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { signIn } from "../services/auth";
 
 function Login() {
   const [phone, setPhone] = useState("");
@@ -85,12 +86,10 @@ function Login() {
   const verifyOtp = async () => {
     try {
       const { data } = await api.post("/auth/verify-otp", { phone, otp });
-      localStorage.setItem("blockseat_token", data.token);
-      localStorage.setItem("blockseat_bstId", data.bstId);
-      localStorage.setItem("blockseat_wallet", data.walletAddress);
+      signIn(data);
       setBstId(data.bstId);
       setMessage("Login successful");
-      setTimeout(() => navigate("/"), 700);
+      navigate("/", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "OTP verification failed");
     }

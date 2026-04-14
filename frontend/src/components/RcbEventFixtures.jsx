@@ -9,11 +9,13 @@ import {
 } from "../utils/rcbPresentation";
 import BrandLogo from "./BrandLogo";
 import TeamLogo from "./TeamLogo";
+import { useAuth } from "../services/auth";
 
 function RcbEventFixtures({ compact = false }) {
   const [events, setEvents] = useState([]);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -56,7 +58,7 @@ function RcbEventFixtures({ compact = false }) {
   }, [compact, events]);
 
   const handleOpenMatch = (eventId) => {
-    if (localStorage.getItem("blockseat_token")) {
+    if (token) {
       navigate(`/events/${eventId}`);
       return;
     }

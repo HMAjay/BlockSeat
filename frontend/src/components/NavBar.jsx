@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import BrandLogo from "./BrandLogo";
+import { signOut, useAuth } from "../services/auth";
 
 function Navbar() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const { token, bstId } = useAuth();
 
   if (location.pathname === "/login") return null;
 
@@ -28,15 +30,11 @@ function Navbar() {
   }, [location.pathname]);
 
   const handleSignOut = () => {
-    localStorage.removeItem("blockseat_token");
-    localStorage.removeItem("blockseat_bstId");
-    localStorage.removeItem("blockseat_wallet");
-    localStorage.removeItem("blockseat_admin_token");
-    navigate("/login");
+    signOut();
+    navigate("/login", { replace: true });
   };
 
-  const isAuthed = Boolean(localStorage.getItem("blockseat_token"));
-  const bstId = localStorage.getItem("blockseat_bstId") || "";
+  const isAuthed = Boolean(token);
 
   const navItems = [
     { label: "Home", path: "/" },

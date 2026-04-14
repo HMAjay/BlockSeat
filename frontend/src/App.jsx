@@ -3,6 +3,7 @@ import React, { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./components/NavBar";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { useAuth } from "./services/auth";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -17,7 +18,7 @@ const VerifyOwner = lazy(() => import("./pages/VerifyOwner"));
 
 function ProtectedRoute({ children }) {
   // JWT guard redirects unauthenticated users to login.
-  const token = localStorage.getItem("blockseat_token");
+  const { token } = useAuth();
   return token ? children : <Navigate to="/login" replace />;
 }
 
@@ -48,7 +49,8 @@ function RouteLoadingFallback() {
 
 function App() {
   const location = useLocation();
-  const isAuthed = Boolean(localStorage.getItem("blockseat_token"));
+  const { token } = useAuth();
+  const isAuthed = Boolean(token);
 
   return (
     <div className="app-shell">

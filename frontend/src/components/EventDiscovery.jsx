@@ -12,6 +12,7 @@ import {
   parseMatchup,
 } from "../utils/eventPresentation";
 import BrandLogo from "./BrandLogo";
+import { useAuth } from "../services/auth";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -34,7 +35,8 @@ function EventDiscovery({ compact = false }) {
   const [filterMode, setFilterMode] = useState("all");
   const [filterValue, setFilterValue] = useState("all");
   const navigate = useNavigate();
-  const isAuthed = Boolean(localStorage.getItem("blockseat_token"));
+  const { token } = useAuth();
+  const isAuthed = Boolean(token);
 
   useEffect(() => {
     const loadEvents = async () => {

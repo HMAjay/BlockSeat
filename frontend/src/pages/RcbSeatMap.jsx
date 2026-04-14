@@ -5,6 +5,7 @@ import StadiumSectionMap from "../components/StadiumSectionMap";
 import TeamLogo from "../components/TeamLogo";
 import api from "../services/api";
 import { acquireCheckoutQueuePass } from "../services/queuePass";
+import { useAuth } from "../services/auth";
 import {
   formatEventDate,
   formatPrice,
@@ -35,6 +36,7 @@ function RcbSeatMap() {
   const [activeTicketCount, setActiveTicketCount] = useState(0);
   const [activeSection, setActiveSection] = useState("west");
   const [message, setMessage] = useState("");
+  const { token } = useAuth();
 
   useEffect(() => {
     const fetchSeats = async () => {
@@ -108,7 +110,7 @@ function RcbSeatMap() {
   const { isLive } = getEventStatus(eventData?.date);
 
   const ensureAuthed = () => {
-    if (localStorage.getItem("blockseat_token")) return true;
+    if (token) return true;
     navigate("/login");
     return false;
   };
