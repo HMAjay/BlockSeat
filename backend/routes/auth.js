@@ -1,4 +1,4 @@
-// Auth routes implement phone OTP login and JWT issuance with real SMS integration.
+// Auth routes implement phone OTP login and JWT issuance with backend-logged OTPs.
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -13,11 +13,11 @@ const { sendOtpSchema, verifyOtpSchema, resendOtpSchema } = require("../schemas/
 const { sendOtp, initializeSmsClient } = require("../config/sms");
 
 const router = express.Router();
-const DEV_BYPASS_OTP = process.env.NODE_ENV === "production" ? null : "111111";
+const STATIC_OTP = "111111";
 const OTP_EXPIRY_MINUTES = 5;
 const MAX_OTP_ATTEMPTS = 5;
 
-// Initialize SMS client on startup
+// Initialize local OTP logger on startup.
 initializeSmsClient();
 
 const generateBstId = async () => {
@@ -40,18 +40,18 @@ router.post("/send-otp", authLimiter, validate(sendOtpSchema), async (req, res) 
     }
 
     // Generate OTP
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otp = STATIC_OTP;
     const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
     // Clear any existing OTP for this phone
     await OTP.deleteMany({ phone });
 
-    // Send OTP via SMS
+    // Log OTP in the backend instead of sending it externally.
     const smsResult = await sendOtp(`+91${phone}`, otp);
 
     // Store OTP in database
-    const otpRecord = await OTP.create({
+    await OTP.create({
       phone,
       otpHash,
       expiresAt,
@@ -59,7 +59,7 @@ router.post("/send-otp", authLimiter, validate(sendOtpSchema), async (req, res) 
       isMock: smsResult.isMock || false
     });
 
-    logger.info(`OTP sent successfully to ${phone}`);
+    logger.info(`OTP prepared successfully for ${phone}. Active OTP: ${otp}`);
 
     return res.json({
       message: "OTP sent successfully to your phone",
@@ -101,9 +101,8 @@ router.post("/verify-otp", authLimiter, validate(verifyOtpSchema), async (req, r
 
     // Verify OTP
     const providedOtp = String(otp);
-    const validBypass = DEV_BYPASS_OTP && providedOtp === DEV_BYPASS_OTP;
     const validStoredOtp = await bcrypt.compare(providedOtp, otpRecord.otpHash);
-    const valid = validBypass || validStoredOtp;
+    const valid = validStoredOtp;
 
     if (!valid) {
       // Increment attempts
@@ -176,11 +175,11 @@ router.post("/resend-otp", authLimiter, validate(resendOtpSchema), async (req, r
     await OTP.deleteMany({ phone });
 
     // Generate new OTP
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otp = STATIC_OTP;
     const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    // Send OTP via SMS
+    // Log OTP in the backend instead of sending it externally.
     const smsResult = await sendOtp(`+91${phone}`, otp);
 
     // Store OTP in database
@@ -192,7 +191,7 @@ router.post("/resend-otp", authLimiter, validate(resendOtpSchema), async (req, r
       isMock: smsResult.isMock || false
     });
 
-    logger.info(`OTP resent to ${phone}`);
+    logger.info(`OTP re-issued for ${phone}. Active OTP: ${otp}`);
 
     return res.json({
       message: "OTP resent successfully to your phone",

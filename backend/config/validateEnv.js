@@ -24,10 +24,7 @@ const validateEnv = () => {
     { key: "QUEUE_WAIT_TTL_SECONDS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
     { key: "QUEUE_JOIN_RATE_LIMIT", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
     { key: "QUEUE_STATUS_RATE_LIMIT", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
-    { key: "QUEUE_STATUS_MIN_POLL_MS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" },
-    { key: "TWILIO_ACCOUNT_SID", check: (v) => v.length > 0, hint: "should be your Twilio Account SID if SMS is enabled" },
-    { key: "TWILIO_AUTH_TOKEN", check: (v) => v.length > 0, hint: "should be your Twilio Auth Token if SMS is enabled" },
-    { key: "TWILIO_PHONE_NUMBER", check: (v) => v.startsWith("+") && v.length > 5, hint: "should be a valid Twilio phone number if SMS is enabled" }
+    { key: "QUEUE_STATUS_MIN_POLL_MS", check: (v) => Number(v) > 0, hint: "should be a positive number if set" }
   ];
 
   const errors = [];
