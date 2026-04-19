@@ -1,4 +1,4 @@
-# BlockSeat - Ee sala ticket namdhe guru. 🎫⛓️
+# BlockSeat - Ee sala ticket namdhe guru! 🎫⛓️
 
 **A blockchain-based NFT ticketing platform** designed to eliminate black-market ticket reselling through:
 - **ERC-721 NFT minting** on Polygon Amoy (testnet)
