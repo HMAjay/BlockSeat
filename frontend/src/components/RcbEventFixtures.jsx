@@ -135,7 +135,7 @@ function RcbEventFixtures({ compact = false }) {
             <div className="empty-booking-icon">
               <BrandLogo alt="BlockSeat" />
             </div>
-            <h3>No RCB matches available right now</h3>
+            <h3>Login to view the matches.</h3>
             <p>New home fixtures will appear here as soon as they are scheduled.</p>
           </div>
         )}
