@@ -260,7 +260,7 @@ button { border: 0; }
   cursor: pointer;
   font-weight: 700;
 }
-.btn:hover, .wallet-pill:hover, .profile-trigger:hover, .seat:hover:not(:disabled), .section-ticket-card:hover { transform: translateY(-2px); }
+.btn:hover, .seat:hover:not(:disabled), .section-ticket-card:hover { transform: translateY(-2px); }
 .btn-primary, .booking-panel-button, .modal-button.confirm, .fixture-buy {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;

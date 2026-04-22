@@ -34,6 +34,7 @@ function Navbar() {
   };
 
   const isAuthed = Boolean(token);
+  const isMyTicketsActive = location.pathname.startsWith("/my-tickets");
 
   if (hideNavbar) return null;
 
@@ -92,7 +93,7 @@ function Navbar() {
           {isAuthed ? (
             <button
               type="button"
-              className="wallet-pill"
+              className={`wallet-pill nav-link ${isMyTicketsActive ? "active" : ""}`}
               onClick={() => {
                 navigate("/my-tickets");
                 setMobileMenuOpen(false);
@@ -103,7 +104,7 @@ function Navbar() {
           ) : (
             <button
               type="button"
-              className="wallet-pill"
+              className="wallet-pill nav-link"
               onClick={() => {
                 navigate("/login");
                 setMobileMenuOpen(false);
@@ -116,7 +117,7 @@ function Navbar() {
           <div className="profile-menu" ref={menuRef}>
             <button
               type="button"
-              className="profile-trigger"
+              className={`profile-trigger nav-link ${profileOpen ? "active" : ""}`}
               onClick={() => setProfileOpen((open) => !open)}
               aria-expanded={profileOpen}
             >
