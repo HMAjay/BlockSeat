@@ -7,6 +7,7 @@ import { signIn } from "../services/auth";
 function Login() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
   const [message, setMessage] = useState("");
   const [bstId, setBstId] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
@@ -62,22 +63,31 @@ function Login() {
     };
   }, [turnstileSiteKey]);
 
-  const sendOtp = async () => {
+  useEffect(() => {
+    setOtpRequested(false);
+  }, [phone]);
+
+  const sendOtp = async ({ silent = false } = {}) => {
     if (!captchaToken) {
       setMessage("Complete CAPTCHA before sending OTP.");
-      return;
+      return false;
     }
 
     try {
       setIsSendingOtp(true);
       await api.post("/auth/send-otp", { phone, captchaToken });
-      setMessage(`OTP sent to ${phone}`);
+      if (!silent) {
+        setMessage(`OTP sent to ${phone}`);
+      }
+      setOtpRequested(true);
       if (window.turnstile && widgetIdRef.current !== null) {
         window.turnstile.reset(widgetIdRef.current);
       }
       setCaptchaToken("");
+      return true;
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to send OTP");
+      return false;
     } finally {
       setIsSendingOtp(false);
     }
@@ -85,6 +95,10 @@ function Login() {
 
   const verifyOtp = async () => {
     try {
+      if (!otpRequested) {
+        const sent = await sendOtp({ silent: true });
+        if (!sent) return;
+      }
       const { data } = await api.post("/auth/verify-otp", { phone, otp });
       signIn(data);
       setBstId(data.bstId);
