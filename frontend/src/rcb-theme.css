@@ -512,6 +512,9 @@ button { border: 0; }
   background: #141414;
   color: #fff;
 }
+.input:disabled, .select:disabled, .textarea:disabled, .field input:disabled {
+  cursor: not-allowed;
+}
 .alert, .empty-state, .empty-booking-state, .stat, .detail {
   padding: 16px;
   border-radius: 14px;
