@@ -65,40 +65,38 @@ function Login() {
 
   useEffect(() => {
     setOtpRequested(false);
+    setOtp("");
   }, [phone]);
 
-  const sendOtp = async ({ silent = false } = {}) => {
+  const sendOtp = async () => {
     if (!captchaToken) {
       setMessage("Complete CAPTCHA before sending OTP.");
-      return false;
+      return;
     }
 
     try {
       setIsSendingOtp(true);
       await api.post("/auth/send-otp", { phone, captchaToken });
-      if (!silent) {
-        setMessage(`OTP sent to ${phone}`);
-      }
+      setMessage(`OTP sent to ${phone}`);
       setOtpRequested(true);
       if (window.turnstile && widgetIdRef.current !== null) {
         window.turnstile.reset(widgetIdRef.current);
       }
       setCaptchaToken("");
-      return true;
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to send OTP");
-      return false;
     } finally {
       setIsSendingOtp(false);
     }
   };
 
   const verifyOtp = async () => {
+    if (!otpRequested) {
+      setMessage("Please click Send OTP first.");
+      return;
+    }
+
     try {
-      if (!otpRequested) {
-        const sent = await sendOtp({ silent: true });
-        if (!sent) return;
-      }
       const { data } = await api.post("/auth/verify-otp", { phone, otp });
       signIn(data);
       setBstId(data.bstId);
@@ -156,6 +154,7 @@ function Login() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.slice(0, 6))}
               placeholder="6-digit OTP"
+              disabled={!otpRequested}
             />
             <button type="button" className="btn btn-primary login-action" onClick={verifyOtp}>
               Verify OTP
