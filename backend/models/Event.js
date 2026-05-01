@@ -1,4 +1,3 @@
-// Event schema stores seat map and seat allocation status.
 const mongoose = require("mongoose");
 
 const seatSchema = new mongoose.Schema(
