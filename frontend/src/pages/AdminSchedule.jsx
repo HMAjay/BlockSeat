@@ -55,9 +55,12 @@ function AdminSchedule() {
   };
 
   const logoutAdmin = () => {
-    localStorage.removeItem("blockseat_admin_token");
-    setMessage("Admin signed out");
-    setCreatedEventId("");
+    const confirmed = window.confirm("Are you sure you want to sign out?");
+    if (confirmed) {
+      localStorage.removeItem("blockseat_admin_token");
+      setMessage("Admin signed out");
+      setCreatedEventId("");
+    }
   };
 
   const scheduleMatch = async () => {

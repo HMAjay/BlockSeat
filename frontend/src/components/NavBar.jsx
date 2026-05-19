@@ -29,8 +29,11 @@ function Navbar() {
   }, [location.pathname]);
 
   const handleSignOut = () => {
-    signOut();
-    navigate("/login", { replace: true });
+    const confirmed = window.confirm("Are you sure you want to sign out?");
+    if (confirmed) {
+      signOut();
+      navigate("/login", { replace: true });
+    }
   };
 
   const isAuthed = Boolean(token);
